@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <link rel="stylesheet" href="/css/login.css"> 
+</head>
+<body>
+
+<h1>Login</h1>
+
+<!-- Flash notice message -->
+<% if (notice && notice.length > 0) { %>
+  <div class="flash-message">
+    <p><%= notice[0] %></p> <!-- Only show the first message -->
+  </div>
+<% } %>
+
+<div class="login-container">
+  <form action="/account/login" method="POST" id="loginForm">
+    <fieldset>
+      <label for="account_email">Email Address:</label>
+      <input type="email" name="account_email" id="account_email" required
+             value="<%= account_email || '' %>">
+
+      <label for="account_password">Password:</label>
+      <input type="password" name="account_password" id="account_password" required
+             minlength="4"
+             title="Password must be at least 4 characters.">
+
+      <p class="password-info">
+        Password must be at least 4 characters.
+      </p>
+
+      <button type="button" id="pswdBtn">Show Password</button>
+
+      <input type="submit" value="Login" class="submitBtn">
+    </fieldset>
+  </form>
+
+  <p class="signup-link">
+    No account? <a href="/account/register">Sign-up</a>
+  </p>
+</div>
+
+<script src="/js/login.js"></script>
+</body>
+</html>

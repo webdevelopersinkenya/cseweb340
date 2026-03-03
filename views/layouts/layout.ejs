@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body class="<%= (typeof title !== 'undefined' && (title === 'Login' || title === 'Register')) ? 'auth-page' : '' %>">
+  <div id="wrapper">
+
+    <% 
+      // Determine if this is an auth page
+      const isAuthPage = (title === 'Login' || title === 'Register'); 
+    %>
+
+
+    <%- include('../partials/header') %>
+    <%- include('../partials/navigation') %>
+
+    <main>
+      <%- body %>
+    </main>
+
+    <% if (!isAuthPage) { %>
+      <%- include('../partials/footer') %>
+    <% } %>
+
+  </div>
+</body>
+</html>
