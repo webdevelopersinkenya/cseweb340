@@ -1,34 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="/styles.css"> <!-- Make sure this links your CSS -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= classificationName %> Vehicles</title>
+<link rel="stylesheet" href="/css/styles.css">
+  
 </head>
 <body>
-
   <main>
     <h1><%= classificationName %> Vehicles</h1>
 
-    <% if (!vehicles || vehicles.length === 0) { %>
-      <p><%= message %></p>
-    <% } else { %>
-      <div class="vehicle-grid">
-        <% vehicles.forEach(vehicle => { %>
-          <div class="vehicle-card">
-            <img 
-              src="<%= vehicle.inv_thumbnail || '/images/vehicles/placeholder.png' %>" 
-              alt="<%= vehicle.inv_make %> <%= vehicle.inv_model %>"
-            >
-            <div class="vehicle-info">
-              <h3><%= vehicle.inv_year %> <%= vehicle.inv_make %> <%= vehicle.inv_model %></h3>
-              <p><%= vehicle.inv_description %></p>
-              <p>Price: <%= new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits:0 }).format(vehicle.inv_price) %></p>
-              <a href="/inv/detail/<%= vehicle.inv_id %>">View Details</a>
-            </div>
-          </div>
-        <% }) %>
-      </div>
+    <!-- Flash message -->
+    <% if (flashMessage && flashMessage.length > 0) { %>
+      <p style="color: green;"><%= flashMessage %></p>
     <% } %>
-  </main>
 
+    <!-- Vehicle grid or "no vehicles" message -->
+    <%- grid %>
+    
+  </main>
 </body>
 </html>

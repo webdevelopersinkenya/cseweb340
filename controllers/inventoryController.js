@@ -13,9 +13,8 @@ async function buildByClassificationName(req, res, next) {
     const nav = await utilities.getNav();
 
     const gridHtml = vehicles.length
-      ? await utilities.buildClassificationGrid(vehicles)
-      : "<p class='notice'>No vehicles found for this classification.</p>";
-
+  ? await utilities.buildClassificationGrid(vehicles)
+  : "<p class='notice'>No vehicles found for this classification.</p>";
     res.render("inventory/classification", {
       title: `${classificationName} Vehicles`,
       classificationName,
