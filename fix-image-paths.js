@@ -1,28 +1,35 @@
 // fix-image-paths.js
-const pool = require('./database'); // adjust the path to your database config
+const pool = require('./database'); // adjust path to your database config
 
 async function fixImagePaths() {
   try {
-    // Select all vehicles first
-    const result = await pool.query('SELECT inv_id, inv_image, inv_thumbnail FROM inventory');
-    
+    // Select all vehicles
+    const result = await pool.query('SELECT inv_id, inv_image FROM inventory');
+
     for (const row of result.rows) {
-      let newImage = row.inv_image.replace('/vehicles/vehicles/', '/vehicles/');
-      let newThumbnail = row.inv_thumbnail.replace('/vehicles/vehicles/', '/vehicles/');
-      
-      // Only update if something changed
-      if (newImage !== row.inv_image || newThumbnail !== row.inv_thumbnail) {
+      if (!row.inv_image) continue; // skip if no image
+
+      // Remove duplicate "vehicles/" from path
+      let newImage = row.inv_image.replace(/\/?vehicles\/vehicles\//g, 'vehicles/');
+
+      // Ensure it starts with "images/" (optional, for consistency)
+      if (!newImage.startsWith('images/')) {
+        newImage = 'images/' + newImage;
+      }
+
+      // Only update if changed
+      if (newImage !== row.inv_image) {
         await pool.query(
           `UPDATE inventory 
-           SET inv_image = $1, inv_thumbnail = $2 
-           WHERE inv_id = $3`,
-          [newImage, newThumbnail, row.inv_id]
+           SET inv_image = $1 
+           WHERE inv_id = $2`,
+          [newImage, row.inv_id]
         );
-        console.log(`Updated vehicle ID ${row.inv_id}`);
+        console.log(`Updated vehicle ID ${row.inv_id}: ${row.inv_image} → ${newImage}`);
       }
     }
 
-    console.log('All paths normalized successfully!');
+    console.log('All image paths normalized successfully!');
     process.exit(0);
   } catch (error) {
     console.error('Error updating image paths:', error);
