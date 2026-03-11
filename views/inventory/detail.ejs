@@ -22,17 +22,26 @@
         <!-- Main Image -->
         <div class="main-image">
           <img 
-            src="/images/<%= vehicleData.inv_image || 'placeholder.png' %>" 
+            src="<%= vehicleData.inv_image && vehicleData.inv_image.trim() !== '' ? vehicleData.inv_image : 'images/vehicles/placeholder.png' %>" 
             alt="<%= vehicleData.inv_make %> <%= vehicleData.inv_model %>"
           >
         </div>
 
-        <!-- Thumbnails (for now just main image) -->
+        <!-- Thumbnails -->
         <div class="thumbnails">
-          <img 
-            src="/images/<%= vehicleData.inv_image || 'placeholder.png' %>" 
-            alt="Thumbnail for <%= vehicleData.inv_make %> <%= vehicleData.inv_model %>"
-          >
+          <% if (vehicleData.inv_thumbnails && vehicleData.inv_thumbnails.length > 0) { %>
+            <% vehicleData.inv_thumbnails.forEach(function(thumbnail) { %>
+              <img 
+                src="<%= thumbnail && thumbnail.trim() !== '' ? thumbnail : 'images/vehicles/placeholder.png' %>" 
+                alt="Thumbnail for <%= vehicleData.inv_make %> <%= vehicleData.inv_model %>"
+              >
+            <% }) %>
+          <% } else { %>
+            <img 
+              src="<%= vehicleData.inv_thumbnail && vehicleData.inv_thumbnail.trim() !== '' ? vehicleData.inv_thumbnail : 'images/vehicles/placeholder.png' %>" 
+              alt="Thumbnail for <%= vehicleData.inv_make %> <%= vehicleData.inv_model %>"
+            >
+          <% } %>
         </div>
       </div>
 
@@ -47,7 +56,7 @@
         <hr>
         <ul class="vehicle-specs">
           <li><strong>MPG:</strong> <%= vehicleData.inv_mpg || 'N/A' %></li>
-          <li><strong>Ext. Color:</strong> <%= vehicleData.inv_color %></li>
+          <li><strong>Ext. Color:</strong> <%= vehicleData.inv_color || 'N/A' %></li>
           <li><strong>Int. Color:</strong> <%= vehicleData.inv_int_color || 'N/A' %></li>
           <li><strong>Fuel Type:</strong> <%= vehicleData.inv_fuel || 'Gasoline' %></li>
           <li><strong>Drivetrain:</strong> <%= vehicleData.inv_drivetrain || 'Front Wheel Drive' %></li>

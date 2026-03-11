@@ -18,7 +18,10 @@
     <ul>
       <% vehicles.forEach(vehicle => { %>
         <li>
-          <img src="/images/<%= vehicle.inv_image %>" alt="<%= vehicle.inv_make %> <%= vehicle.inv_model %>">
+          <img 
+            src="<%= vehicle.inv_thumbnail && vehicle.inv_thumbnail.trim() !== '' ? vehicle.inv_thumbnail : '/images/vehicles/placeholder.png' %>" 
+            alt="<%= vehicle.inv_make %> <%= vehicle.inv_model %>"
+          >
           <strong><%= vehicle.inv_make %> <%= vehicle.inv_model %></strong> - <%= vehicle.inv_year %>
           <p><%= vehicle.inv_description %></p>
           <p>Price: $<%= vehicle.inv_price %></p>
