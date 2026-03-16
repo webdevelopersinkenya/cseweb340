@@ -2,25 +2,47 @@ const inventoryModel = require("../models/inventory-model");
 const utilities = require("../utilities/");
 const { body, validationResult } = require("express-validator");
 
+
 /* ***************************
  * Build inventory by classification
  ***************************** */
 async function buildByClassificationName(req, res, next) {
   try {
     const classificationName = req.params.classificationName;
-    const data = await inventoryModel.getInventoryByClassificationName(classificationName);
+
+    // Get the classification ID for this name
+    const classificationData = await inventoryModel.getClassificationByName(classificationName);
+
+    if (!classificationData) {
+      // If no classification matches, show "no vehicles found"
+      return res.render("inventory/classification", {
+        title: `${classificationName} Vehicles`,
+        classificationName,
+        vehicles: [],
+        grid: "<p class='notice'>No vehicles found for this classification.</p>",
+        message: "No vehicles found for this classification.",
+        nav: await utilities.getNav(),
+        flashMessage: req.flash("notice")
+      });
+    }
+
+    const classificationId = classificationData.classification_id;
+
+    // Fetch all vehicles with this classification_id
+    const data = await inventoryModel.getInventoryByClassificationId(classificationId);
     const vehicles = data.rows || [];
-    const nav = await utilities.getNav();
 
     const gridHtml = vehicles.length
-  ? await utilities.buildClassificationGrid(vehicles)
-  : "<p class='notice'>No vehicles found for this classification.</p>";
+      ? await utilities.buildClassificationGrid(vehicles)
+      : "<p class='notice'>No vehicles found for this classification.</p>";
+
     res.render("inventory/classification", {
       title: `${classificationName} Vehicles`,
       classificationName,
-      nav,
       vehicles,
       grid: gridHtml,
+      message: vehicles.length ? null : "No vehicles found for this classification.",
+      nav: await utilities.getNav(),
       flashMessage: req.flash("notice")
     });
   } catch (error) {

@@ -1,24 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= classificationName %> Vehicles</title>
-<link rel="stylesheet" href="/css/styles.css">
-  
+  <link rel="stylesheet" href="/styles.css"> <!-- Make sure this links your CSS -->
 </head>
 <body>
+
   <main>
     <h1><%= classificationName %> Vehicles</h1>
 
-    <!-- Flash message -->
-    <% if (flashMessage && flashMessage.length > 0) { %>
-      <p style="color: green;"><%= flashMessage %></p>
-    <% } %>
-
-    <!-- Vehicle grid or "no vehicles" message -->
-    <%- grid %>
+    <!-- Render the grid HTML, which already includes a "no vehicles" message if empty -->
+    <%- grid %> <!-- use <%- %> to render raw HTML from gridHtml -->
     
   </main>
+
 </body>
 </html>

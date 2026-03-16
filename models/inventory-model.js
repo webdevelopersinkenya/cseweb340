@@ -44,18 +44,33 @@ async function getInventoryByClassificationName(classification_name) {
  * Purpose: Retrieves all classification names and IDs from the database.
  * Used for building the classification dropdown.
  ***************************** */
-async function getClassifications() {
+// Get classification by name
+async function getClassificationByName(classificationName) {
   try {
-    const data = await pool.query(
-      "SELECT * FROM classification ORDER BY classification_name"
-    );
-    return data.rows;
+    const sql = "SELECT * FROM classification WHERE classification_name = $1";
+    const data = await pool.query(sql, [classificationName]);
+    return data.rows[0]; // returns single classification
   } catch (error) {
-    console.error("getClassifications error: " + error);
-    throw new Error("Failed to get classifications.");
+    throw error;
   }
 }
 
+// Get inventory by classification ID
+async function getInventoryByClassificationId(classificationId) {
+  try {
+    const sql = `
+      SELECT i.*, c.classification_name 
+      FROM inventory i
+      JOIN classification c 
+      ON i.classification_id = c.classification_id
+      WHERE i.classification_id = $1
+      ORDER BY i.inv_id
+    `;
+    return await pool.query(sql, [classificationId]);
+  } catch (error) {
+    throw error;
+  }
+}
 /* ***************************
  * Add new classification
  * Purpose: Inserts a new classification into the database.
@@ -92,7 +107,9 @@ async function addInventory(
   inv_miles,
   inv_color,
   classification_id
-) {
+)
+  
+ {
   try {
     const sql = `
       INSERT INTO inventory (
@@ -117,11 +134,26 @@ async function addInventory(
     throw new Error("Failed to add new inventory item to database.");
   }
 }
-
+/* ***************************
+ * Get all classifications
+ ***************************** */
+async function getClassifications() {
+  try {
+    const sql = "SELECT * FROM classification ORDER BY classification_name";
+    const data = await pool.query(sql);
+    return data.rows; // returns array of classifications
+  } catch (error) {
+    console.error("getClassifications error: " + error);
+    throw new Error("Failed to fetch classifications.");
+  }
+}
 module.exports = {
   getInventoryById,
   getInventoryByClassificationName,
+   getInventoryByClassificationId,
+   getClassificationByName,
   getClassifications, // Export new function
   addClassification,  // Export new function
-  addInventory,       // Export new function
+  addInventory,  
+   
 };

@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();      // <-- THIS WAS MISSING
 const invModel = require('../models/inventory-model'); // adjust path if needed
