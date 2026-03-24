@@ -32,7 +32,7 @@ async function getInventoryByClassificationName(classification_name) {
       [classification_name]
     );
 
-    return data; // ✅ RETURN FULL QUERY OBJECT
+    return data; //  RETURN FULL QUERY OBJECT
   } catch (error) {
     console.error("getInventoryByClassificationName error: " + error);
     throw new Error("Failed to get inventory items by classification name.");
