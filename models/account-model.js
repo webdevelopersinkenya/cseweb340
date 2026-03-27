@@ -3,22 +3,18 @@ const pool = require("../database"); // PostgreSQL connection
 /* *****************************
  * Register a new account
  ***************************** */
-async function registerAccount(account_firstname, account_lastname, account_email, account_password) {
-  try {
-    const sql = `
-      INSERT INTO account (account_firstname, account_lastname, account_email, account_password)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *;
-    `;
-    const result = await pool.query(sql, [account_firstname, account_lastname, account_email, account_password]);
-    return result.rows[0];
-  } catch (error) {
-    console.error("registerAccount error:", error);
-    if (error.code === '23505') {
-      throw new Error("Email already exists. Please login or use a different email.");
-    }
-    throw new Error("Failed to register account.");
-  }
+async function registerAccount(firstname, lastname, email, password, account_type) {
+  const sql = `
+    INSERT INTO account 
+    (account_firstname, account_lastname, account_email, account_password, account_type)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING *`;
+
+  return pool.query(sql, [firstname, lastname, email, password, account_type]);
+}
+async function getAccountCount() {
+  const result = await pool.query("SELECT COUNT(*) FROM account");
+  return parseInt(result.rows[0].count);
 }
 
 /* *****************************
@@ -41,10 +37,11 @@ async function checkExistingEmail(account_email) {
 async function getAccountByEmail(account_email) {
   try {
     const sql = `
-      SELECT account_id, account_firstname, account_lastname, account_email, account_password
+      SELECT account_id, account_firstname, account_lastname, account_email, account_password, account_type
       FROM account
       WHERE account_email = $1
     `;
+
     const result = await pool.query(sql, [account_email]);
     return result.rows[0];
   } catch (error) {
@@ -52,6 +49,7 @@ async function getAccountByEmail(account_email) {
     return null;
   }
 }
+
 
 /* *****************************
  * Get account by ID

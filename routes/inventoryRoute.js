@@ -31,6 +31,10 @@ router.get(
   //utilities.checkAccountType,
   utilities.handleErrors(inventoryController.buildByInvId)
 );
+router.get("/", (req, res, next) => {
+  console.log("SESSION DATA:", req.session.accountData);
+  next();
+}, utilities.handleErrors(inventoryController.buildManagement));
 
 /* **************************************
  * CLASSIFICATION ROUTES (OPEN FOR NOW)

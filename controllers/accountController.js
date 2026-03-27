@@ -43,8 +43,24 @@ async function registerAccount(req, res) {
       return res.redirect("/account/register");
     }
 
+    //  NEW: Count existing users
+    const accountCount = await accountModel.getAccountCount();
+
+    //  First user becomes Admin
+    let account_type = "Client";
+    if (accountCount === 0) {
+      account_type = "Admin";
+    }
+
     const hashedPassword = await bcrypt.hash(account_password, 10);
-    await accountModel.registerAccount(account_firstname, account_lastname, account_email, hashedPassword);
+
+    await accountModel.registerAccount(
+      account_firstname,
+      account_lastname,
+      account_email,
+      hashedPassword,
+      account_type //  NOW INCLUDED
+    );
 
     req.flash("notice", `Congratulations ${account_firstname}, you are now registered. Please log in.`);
     return res.redirect("/account/login");
