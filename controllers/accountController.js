@@ -1,5 +1,6 @@
 const accountModel = require("../models/account-model");
 const utilities = require("../utilities/");
+const jwt = require("jsonwebtoken")
 const bcrypt = require("bcryptjs");
 
 /* ****************************************
@@ -75,32 +76,52 @@ async function registerAccount(req, res) {
 /* ****************************************
  * Process Login
  **************************************** */
-async function accountLogin(req, res) {
-  const { account_email, account_password } = req.body;
+async function loginAccount(req, res) {
+  const { account_email, account_password } = req.body
 
   try {
-    const accountData = await accountModel.getAccountByEmail(account_email);
+    const user = await accountModel.getAccountByEmail(account_email)
 
-    if (!accountData) {
-      req.flash("notice", "Invalid email or password.");
-      return res.redirect("/account/login");
+    if (!user) {
+      req.flash("notice", "Invalid email or password")
+      return res.redirect("/account/login")
     }
 
-    const passwordMatch = await bcrypt.compare(account_password, accountData.account_password);
-    if (!passwordMatch) {
-      req.flash("notice", "Invalid email or password.");
-      return res.redirect("/account/login");
+    const bcrypt = require("bcryptjs")
+
+    const isMatch = await bcrypt.compare(
+      account_password,
+      user.account_password
+    )
+
+    if (!isMatch) {
+      req.flash("notice", "Invalid email or password")
+      return res.redirect("/account/login")
     }
 
-    delete accountData.account_password; // remove password before storing
-    req.session.accountData = accountData;
+    const jwt = require("jsonwebtoken")
 
-    req.flash("notice", `Welcome back, ${accountData.account_firstname}!`);
-    return res.redirect("/account/");
+    const token = jwt.sign(
+      {
+        account_id: user.account_id,
+        email: user.account_email
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    )
+
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+      maxAge: 60 * 60 * 1000
+    })
+
+    res.redirect("/account/dashboard")
+
   } catch (error) {
-    console.error("Login error:", error);
-    req.flash("notice", "Login failed due to server error.");
-    return res.redirect("/account/login");
+    console.error(error)
+    res.status(500).send("Server error")
   }
 }
 
@@ -209,7 +230,7 @@ module.exports = {
   buildLogin,
   buildRegister,
   registerAccount,
-  accountLogin,
+  loginAccount,
   buildAccountManagement,
   buildUpdateAccount,
   updateAccount,

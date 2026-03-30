@@ -35,19 +35,13 @@ async function checkExistingEmail(account_email) {
  * Get account by email
  ***************************** */
 async function getAccountByEmail(account_email) {
-  try {
-    const sql = `
-      SELECT account_id, account_firstname, account_lastname, account_email, account_password, account_type
-      FROM account
-      WHERE account_email = $1
-    `;
-
-    const result = await pool.query(sql, [account_email]);
-    return result.rows[0];
-  } catch (error) {
-    console.error("getAccountByEmail error:", error);
-    return null;
-  }
+  const sql = `
+    SELECT account_id, account_email, account_password
+    FROM account
+    WHERE account_email = $1
+  `
+  const result = await pool.query(sql, [account_email])
+  return result.rows[0]
 }
 
 
