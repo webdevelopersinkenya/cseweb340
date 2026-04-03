@@ -1,6 +1,5 @@
 const accountModel = require("../models/account-model");
 const utilities = require("../utilities/");
-const jwt = require("jsonwebtoken")
 const bcrypt = require("bcryptjs");
 
 /* ****************************************
@@ -48,7 +47,7 @@ async function registerAccount(req, res) {
     const accountCount = await accountModel.getAccountCount();
 
     //  First user becomes Admin
-    let account_type = "Client";
+    let account_type = "user";
     if (accountCount === 0) {
       account_type = "Admin";
     }
@@ -77,51 +76,44 @@ async function registerAccount(req, res) {
  * Process Login
  **************************************** */
 async function loginAccount(req, res) {
-  const { account_email, account_password } = req.body
+  const { account_email, account_password } = req.body;
 
   try {
-    const user = await accountModel.getAccountByEmail(account_email)
+    const user = await accountModel.getAccountByEmail(account_email);
 
     if (!user) {
-      req.flash("notice", "Invalid email or password")
-      return res.redirect("/account/login")
+      req.flash("notice", "Invalid email or password");
+      return res.redirect("/account/login");
     }
-
-    const bcrypt = require("bcryptjs")
 
     const isMatch = await bcrypt.compare(
       account_password,
       user.account_password
-    )
+    );
 
     if (!isMatch) {
-      req.flash("notice", "Invalid email or password")
-      return res.redirect("/account/login")
+      req.flash("notice", "Invalid email or password");
+      return res.redirect("/account/login");
     }
 
-    const jwt = require("jsonwebtoken")
+    // ✅ FIXED SESSION (THIS IS THE CRITICAL PART)
+    req.session.loggedin = true;
 
-    const token = jwt.sign(
-      {
-        account_id: user.account_id,
-        email: user.account_email
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    )
+    req.session.accountData = {
+      account_id: user.account_id,
+      account_firstname: user.account_firstname,
+      account_lastname: user.account_lastname,
+      account_email: user.account_email,
+      account_type: user.account_type
+    };
 
-    res.cookie("jwt", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "strict",
-      maxAge: 60 * 60 * 1000
-    })
+    req.flash("notice", "Login successful!");
 
-    res.redirect("/account/dashboard")
+    return res.redirect("/account");
 
   } catch (error) {
-    console.error(error)
-    res.status(500).send("Server error")
+    console.error("Login error:", error);
+    res.status(500).send("Server error");
   }
 }
 
@@ -216,12 +208,13 @@ async function updatePassword(req, res, next) {
  **************************************** */
 async function accountLogout(req, res) {
   req.flash("notice", "You have been logged out.");
+
   req.session.destroy((err) => {
     if (err) {
       console.error("Session destroy error:", err);
       return res.redirect("/");
     }
-    res.clearCookie("jwt");
+
     return res.redirect("/");
   });
 }

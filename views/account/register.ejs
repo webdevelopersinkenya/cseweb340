@@ -8,12 +8,10 @@
 <% } %>
 
 <!-- Validation errors -->
-<% if (errors && errors.length > 0) { %>
-  <ul class="errors">
-    <% errors.forEach(function(error) { %>
-      <li><%= error.msg %></li>
-    <% }); %>
-  </ul>
+<% if (Array.isArray(notice) && notice.length > 0) { %>
+  <div class="flash-message">
+    <p><%= notice[0] %></p>
+  </div>
 <% } %>
 
 <div class="auth-container">

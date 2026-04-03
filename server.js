@@ -41,7 +41,11 @@ app.use(
     name: "sessionId",
   })
 );
-
+app.use((req, res, next) => {
+  res.locals.loggedin = req.session?.loggedin || false;
+  res.locals.accountData = req.session?.accountData || null;
+  next();
+});
 // Express Messages Middleware
 app.use(require("connect-flash")());
 app.use(function (req, res, next) {
@@ -65,10 +69,6 @@ app.use(async (req, res, next) => {
     next(error);
   }
 });
-
-// Optional JWT middleware
-app.use(utilities.checkJWTToken);
-
 // Built-in middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());

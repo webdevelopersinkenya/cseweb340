@@ -1,17 +1,23 @@
-const jwt = require("jsonwebtoken")
-
-function checkAuth(req, res, next) {
-  const token = req.cookies.jwt
-
-  if (!token) return res.redirect("/account/login")
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    req.user = decoded
-    next()
-  } catch (err) {
-    return res.redirect("/account/login")
+function ensureLoggedIn(req, res, next) {
+  if (!req.session.accountData) {
+    req.flash("notice", "Please log in.");
+    return res.redirect("/account/login");
   }
+  next();
 }
 
-module.exports = checkAuth
+function ensureAdmin(req, res, next) {
+  if (!req.session.accountData) {
+    req.flash("notice", "Please log in.");
+    return res.redirect("/account/login");
+  }
+
+  if (req.session.accountData.account_type !== "admin") {
+    req.flash("notice", "Access denied.");
+    return res.redirect("/account");
+  }
+
+  next();
+}
+
+module.exports = { ensureLoggedIn, ensureAdmin };

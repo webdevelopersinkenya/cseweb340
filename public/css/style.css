@@ -1910,8 +1910,7 @@ body {
 
 /* Flash message styling */
 .flash-message {
-  background-color: #f87171; /* Red for errors */
-  color: #fff;
+  color: red;
   padding: 10px;
   border-radius: 5px;
   margin-bottom: 15px;
@@ -1980,8 +1979,7 @@ body {
 }
 
 .flash-message {
-  background-color: #f87171; /* Red for notices */
-  color: #fff;
+  color: red;
   padding: 10px;
   border-radius: 5px;
   margin-bottom: 15px;
@@ -1995,8 +1993,7 @@ body {
 }
 
 .errors li {
-  background-color: #f87171;
-  color: #fff;
+  color:red;
   padding: 8px;
   border-radius: 5px;
   margin-bottom: 5px;

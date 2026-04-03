@@ -4,16 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login</title>
-  <link rel="stylesheet" href=""> 
 </head>
 <body>
 
 <h1>Login</h1>
 
 <!-- Flash notice message -->
-<% if (notice && notice.length > 0) { %>
+<% if (notice) { %>
   <div class="flash-message">
-    <p><%= notice[0] %></p> <!-- Only show the first message -->
+    <p><%= notice %></p>
   </div>
 <% } %>
 
@@ -35,7 +34,7 @@
 
       <button type="button" id="pswdBtn">Show Password</button>
 
-      <input type="submit" value="Login" class="submitBtn">
+      <button type="submit" class="submitBtn">Login</button>
     </fieldset>
   </form>
 

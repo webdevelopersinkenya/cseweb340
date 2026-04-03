@@ -1,11 +1,13 @@
 <h1><%= title %></h1>
 
-<!-- Display flash message if it exists -->
+<!-- Flash messages -->
 <% if (flashMessage && flashMessage.length > 0) { %>
-  <p style="color: green;"><%= flashMessage %></p>
+  <% flashMessage.forEach(msg => { %>
+    <p style="color: green;"><%= msg %></p>
+  <% }) %>
 <% } %>
 
-<!-- Display server-side validation errors -->
+<!-- Validation errors -->
 <% if (errors && errors.length > 0) { %>
   <ul style="color: red;">
     <% errors.forEach(error => { %>
@@ -15,17 +17,19 @@
 <% } %>
 
 <form action="/inv/add-classification" method="post">
+
   <label for="classification_name">Classification Name</label>
   <input 
     type="text" 
     id="classification_name" 
     name="classification_name" 
     required 
-    pattern="[A-Za-z]+" 
+    minlength="1"
+    pattern="^[A-Za-z0-9]+$"
     title="No spaces or special characters"
-    value="<%= classification_name || '' %>" <!-- sticky input -->
-  
-  
+    value="<%= classification_name || '' %>">
+
+  <small>No spaces or special characters allowed.</small>
+
   <button type="submit">Add Classification</button>
 </form>
-
