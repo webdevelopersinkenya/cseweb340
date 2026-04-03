@@ -1,9 +1,15 @@
-const pool = require("../database"); // PostgreSQL connection
+const pool = require("../database/index"); // ✅ make sure this matches your project structure
 
 /* *****************************
  * Register a new account
  ***************************** */
-async function registerAccount(firstname, lastname, email, password, account_type = 'user') {
+async function registerAccount(
+  firstname,
+  lastname,
+  email,
+  password,
+  account_type = "user"
+) {
   const sql = `
     INSERT INTO accounts 
     (account_firstname, account_lastname, account_email, account_password, account_type)
@@ -11,7 +17,15 @@ async function registerAccount(firstname, lastname, email, password, account_typ
     RETURNING *;
   `;
 
-  return pool.query(sql, [firstname, lastname, email, password, account_type]);
+  const result = await pool.query(sql, [
+    firstname,
+    lastname,
+    email,
+    password,
+    account_type,
+  ]);
+
+  return result.rows[0];
 }
 
 /* *****************************
@@ -27,12 +41,17 @@ async function getAccountCount() {
  ***************************** */
 async function checkExistingEmail(account_email) {
   try {
-    const sql = "SELECT COUNT(*) FROM accounts WHERE account_email = $1";
+    const sql = `
+      SELECT COUNT(*) 
+      FROM accounts 
+      WHERE account_email = $1
+    `;
+
     const result = await pool.query(sql, [account_email]);
-    return result.rows[0].count > 0;
+    return parseInt(result.rows[0].count) > 0;
   } catch (error) {
     console.error("checkExistingEmail error:", error);
-    throw new Error("Failed to check existing email.");
+    return false;
   }
 }
 
@@ -40,14 +59,27 @@ async function checkExistingEmail(account_email) {
  * Get account by email (LOGIN)
  ***************************** */
 async function getAccountByEmail(account_email) {
-  const sql = `
-    SELECT account_id, account_firstname, account_lastname, account_email, account_password, account_type
-    FROM accounts
-    WHERE account_email = $1;
-  `;
+  try {
+    const sql = `
+      SELECT 
+        account_id,
+        account_firstname,
+        account_lastname,
+        account_email,
+        account_password,
+        account_type
+      FROM accounts
+      WHERE account_email = $1;
+    `;
 
-  const result = await pool.query(sql, [account_email]);
-  return result.rows[0];
+    const result = await pool.query(sql, [account_email]);
+
+    // ✅ IMPORTANT: safe return
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error("getAccountByEmail error:", error);
+    return null;
+  }
 }
 
 /* *****************************
@@ -56,13 +88,18 @@ async function getAccountByEmail(account_email) {
 async function getAccountById(account_id) {
   try {
     const sql = `
-      SELECT account_id, account_firstname, account_lastname, account_email, account_type
+      SELECT 
+        account_id,
+        account_firstname,
+        account_lastname,
+        account_email,
+        account_type
       FROM accounts
       WHERE account_id = $1;
     `;
 
     const result = await pool.query(sql, [account_id]);
-    return result.rows[0];
+    return result.rows[0] || null;
   } catch (error) {
     console.error("getAccountById error:", error);
     return null;
@@ -72,7 +109,12 @@ async function getAccountById(account_id) {
 /* *****************************
  * Update account info
  ***************************** */
-async function updateAccount({ account_id, account_firstname, account_lastname, account_email }) {
+async function updateAccount({
+  account_id,
+  account_firstname,
+  account_lastname,
+  account_email,
+}) {
   try {
     const sql = `
       UPDATE accounts
@@ -88,7 +130,7 @@ async function updateAccount({ account_id, account_firstname, account_lastname, 
       account_firstname,
       account_lastname,
       account_email,
-      account_id
+      account_id,
     ]);
 
     return result.rows[0];
@@ -112,6 +154,7 @@ async function updatePassword(account_id, hashedPassword) {
     `;
 
     const result = await pool.query(sql, [hashedPassword, account_id]);
+
     return result.rows[0];
   } catch (error) {
     console.error("updatePassword error:", error);

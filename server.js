@@ -16,66 +16,94 @@ const expressLayouts = require("express-ejs-layouts");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const flash = require("connect-flash");
+const pgSession = require("connect-pg-simple")(session);
 
 const app = express();
-const pool = require("./database/");
-const utilities = require("./utilities/");
 
-// Routes
+/*******************************
+ * Database
+ *******************************/
+const pool = require("./database");
+
+/*******************************
+ * Test DB connection (safe)
+ *******************************/
+(async () => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    console.log(" Database connected:", result.rows[0].now);
+  } catch (err) {
+    console.error(" DB connection failed:", err.message);
+  }
+})();
+
+/*******************************
+ * Routes
+ *******************************/
 const staticRoutes = require("./routes/static");
 const inventoryRoute = require("./routes/inventoryRoute");
 const accountRoute = require("./routes/accountRoute");
 
-/* ***********************
- * Middleware
- * ************************/
+/*******************************
+ * Session Middleware
+ *******************************/
 app.use(
   session({
-    store: new (require("connect-pg-simple")(session))({
-      createTableIfMissing: true,
+    store: new pgSession({
       pool,
+      createTableIfMissing: true,
     }),
     secret: process.env.SESSION_SECRET,
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     name: "sessionId",
   })
 );
-app.use((req, res, next) => {
-  res.locals.loggedin = req.session?.loggedin || false;
-  res.locals.accountData = req.session?.accountData || null;
-  next();
-});
-// Express Messages Middleware
-app.use(require("connect-flash")());
-app.use(function (req, res, next) {
-  res.locals.messages = require("express-messages")(req, res);
-  next();
-});
 
 /*******************************
- * Additional Middleware
+ * Global variables
+ *******************************/
+app.use((req, res, next) => {
+  res.locals.loggedin = Boolean(req.session.accountData);
+  res.locals.accountData = req.session.accountData || null;
+  next();
+});
+/*******************************
+ * Flash messages (FIXED)
+ *******************************/
+app.use(flash());
+
+app.use((req, res, next) => {
+  res.locals.notice = req.flash("notice");
+  res.locals.error = req.flash("error");
+  next();
+});
+/*******************************
+ * Middleware
  *******************************/
 app.use(cookieParser());
+
+const utilities = require("./utilities");
 
 app.use(async (req, res, next) => {
   try {
     res.locals.nav = await utilities.getNav();
     res.locals.currentPath = req.path;
-    res.locals.accountData = req.session?.accountData || null;
-    res.locals.loggedin = !!res.locals.accountData;
     next();
   } catch (error) {
     next(error);
   }
 });
-// Built-in middleware
+
+/*******************************
+ * Body Parsers
+ *******************************/
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 /*******************************
- * View Engine and Layouts
+ * View Engine
  *******************************/
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -90,9 +118,9 @@ app.use("/inv", inventoryRoute);
 app.use("/account", accountRoute);
 
 /*******************************
- * Error Handling
+ * 404 Handler
  *******************************/
-app.use(async (req, res, next) => {
+app.use(async (req, res) => {
   const nav = await utilities.getNav();
   res.status(404).render("errors/error", {
     title: "404 Not Found",
@@ -103,9 +131,13 @@ app.use(async (req, res, next) => {
   });
 });
 
+/*******************************
+ * Error Handler
+ *******************************/
 app.use(async (err, req, res, next) => {
   const nav = await utilities.getNav();
   console.error(`Error: ${err.message}`);
+
   res.status(500).render("errors/error", {
     title: "Server Error",
     message: err.message,
@@ -119,6 +151,7 @@ app.use(async (err, req, res, next) => {
  * Start Server
  *******************************/
 const port = process.env.PORT || 5500;
+
 app.listen(port, () => {
-  console.log(`App is listening on http://localhost:${port}`);
+  console.log(`🚀 App is running on http://localhost:${port}`);
 });

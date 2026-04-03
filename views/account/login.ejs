@@ -4,18 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login</title>
+  <link rel="icon" href="/favicon.ico">
 </head>
 <body>
 
 <h1>Login</h1>
 
 <!-- Flash notice message -->
-<% if (notice) { %>
+<% if (notice && notice.length > 0) { %>
   <div class="flash-message">
-    <p><%= notice %></p>
+    <p><%= notice[0] %></p>
   </div>
 <% } %>
-
+<% if (typeof loggedin === 'undefined' || !loggedin) { %>
 <div class="login-container">
   <form action="/account/login" method="POST" id="loginForm">
     <fieldset>
@@ -42,6 +43,9 @@
     No account? <a href="/account/register">Sign-up</a>
   </p>
 </div>
+<% } else { %>
+  <p>You are already logged in. Go to your <a href="/account/">dashboard</a>.</p>
+<% } %>
 
 <script src="/js/login.js"></script>
 </body>

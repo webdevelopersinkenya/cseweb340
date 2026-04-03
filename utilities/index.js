@@ -1,10 +1,13 @@
-const pool = require("../database/");
 const inventoryModel = require("../models/inventory-model");
-const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 /* ****************************************
- * Navigation
+ * IMPORT GRID FUNCTION (from separate file)
+ ****************************************/
+const buildClassificationGrid = require("./classification-grid");
+
+/* ****************************************
+ * NAVIGATION
  ****************************************/
 async function getNav() {
   let navList = "<ul><li><a href='/'>Home</a></li>";
@@ -28,27 +31,29 @@ async function getNav() {
 }
 
 /* ****************************************
- * LOGIN CHECK (SESSION ONLY - FIXED)
+ * LOGIN CHECK
  ****************************************/
 function checkLogin(req, res, next) {
-  if (req.session?.loggedin) return next();
-
+  if (req.session.loggedin) {
+    return next();
+  }
   req.flash("notice", "Please log in.");
   return res.redirect("/account/login");
 }
+
 
 /* ****************************************
  * LOGOUT CHECK
  ****************************************/
 function checkLogout(req, res, next) {
-  if (req.session?.loggedin) {
-    return res.redirect("/account");
+  if (!req.session.loggedin) {
+    return next();
   }
-  next();
+  return res.redirect("/account/");
 }
 
 /* ****************************************
- * ROLE CHECK (FIXED CASE HANDLING)
+ * ROLE CHECK
  ****************************************/
 function checkAccountType(req, res, next) {
   const role = req.session?.accountData?.account_type?.toLowerCase();
@@ -62,7 +67,7 @@ function checkAccountType(req, res, next) {
 }
 
 /* ****************************************
- * ERROR WRAPPER
+ * ERROR HANDLER
  ****************************************/
 function handleErrors(fn) {
   return (req, res, next) => {
@@ -70,10 +75,14 @@ function handleErrors(fn) {
   };
 }
 
+/* ****************************************
+ * EXPORTS (ONLY ONCE)
+ ****************************************/
 module.exports = {
   getNav,
   checkLogin,
   checkLogout,
   checkAccountType,
   handleErrors,
+  buildClassificationGrid,
 };
