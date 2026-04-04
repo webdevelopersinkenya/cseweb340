@@ -1,6 +1,8 @@
 const accountModel = require("../models/account-model");
-const utilities = require("../utilities/");
+const utilities = require("../utilities");
 const bcrypt = require("bcryptjs");
+
+console.log("REGISTER CONTROLLER RUNNING");
 
 /* ======================================
  * LOGIN VIEW
@@ -9,9 +11,9 @@ async function buildLogin(req, res) {
   res.render("account/login", {
     title: "Login",
     nav: await utilities.getNav(),
-    errors: null,
-    account_email: "",
-    notice: req.flash("notice") || [],
+    errors: null,               // for server-side validation errors
+    account_email: "",          // sticky field (empty initially)
+    notice: req.flash("notice"),
   });
 }
 
@@ -22,16 +24,16 @@ async function buildRegister(req, res) {
   res.render("account/register", {
     title: "Register",
     nav: await utilities.getNav(),
-    errors: null,
-    account_firstname: "",
+    errors: null,               // for server-side validation errors
+    account_firstname: "",      // sticky fields
     account_lastname: "",
     account_email: "",
-    notice: req.flash("notice") || [],
+    notice: req.flash("notice"),
   });
 }
 
 /* ======================================
- * REGISTER ACCOUNT
+ * REGISTER ACCOUNT (called only after validation passes)
  * ====================================== */
 async function registerAccount(req, res) {
   const {
@@ -42,22 +44,20 @@ async function registerAccount(req, res) {
   } = req.body;
 
   try {
+    // Check if email already exists
     const emailExists = await accountModel.checkExistingEmail(account_email);
-
     if (emailExists) {
       req.flash("notice", "Email already exists. Please login.");
       return res.redirect("/account/login");
     }
 
-    const accountCount = await accountModel.getAccountCount();
+    // Set a default account type – change "user" to match your database column (e.g., 'Client')
+    const account_type = "user";
 
-    let account_type = "user";
-    if (accountCount === 0) {
-      account_type = "admin";
-    }
-
+    // Hash password
     const hashedPassword = await bcrypt.hash(account_password, 10);
 
+    // Register the user
     await accountModel.registerAccount(
       account_firstname,
       account_lastname,
@@ -66,11 +66,7 @@ async function registerAccount(req, res) {
       account_type
     );
 
-    req.flash(
-      "notice",
-      `Welcome ${account_firstname}, please log in.`
-    );
-
+    req.flash("notice", "Registration successful. Please log in.");
     return res.redirect("/account/login");
   } catch (error) {
     console.error("Registration error:", error);
@@ -78,7 +74,6 @@ async function registerAccount(req, res) {
     return res.redirect("/account/register");
   }
 }
-
 /* ======================================
  * LOGIN ACCOUNT
  * ====================================== */
@@ -87,25 +82,19 @@ async function loginAccount(req, res) {
 
   try {
     const user = await accountModel.getAccountByEmail(account_email);
-
     if (!user) {
       req.flash("notice", "Invalid email or password.");
       return res.redirect("/account/login");
     }
 
-    const match = await bcrypt.compare(
-      account_password,
-      user.account_password
-    );
-
+    const match = await bcrypt.compare(account_password, user.account_password);
     if (!match) {
       req.flash("notice", "Invalid email or password.");
       return res.redirect("/account/login");
     }
 
-    /* IMPORTANT SESSION FIX */
-     req.session.loggedin = true;
-
+    // Set session data
+    req.session.loggedin = true;
     req.session.accountData = {
       account_id: user.account_id,
       account_firstname: user.account_firstname,
@@ -114,8 +103,7 @@ async function loginAccount(req, res) {
       account_type: user.account_type,
     };
 
-   req.flash("notice", "You have successfully logged in.");
-
+    req.flash("notice", `Welcome ${user.account_firstname}`);
     return res.redirect("/account/");
   } catch (error) {
     console.error("Login error:", error);
@@ -132,25 +120,29 @@ async function buildAccountManagement(req, res) {
     nav: await utilities.getNav(),
     errors: null,
     account: req.session.accountData,
-    notice: req.flash("notice") || [],
+    notice: req.flash("notice"),
   });
 }
 
 /* ======================================
- * UPDATE VIEW
+ * UPDATE ACCOUNT VIEW
  * ====================================== */
 async function buildUpdateAccount(req, res, next) {
   try {
-    const account_id = req.session.accountData.account_id;
+    if (!req.session.accountData) {
+      return res.redirect("/account/login");
+    }
 
-    const account = await accountModel.getAccountById(account_id);
+    const account = await accountModel.getAccountById(
+      req.session.accountData.account_id
+    );
 
     res.render("account/update-account", {
       title: "Update Account",
       nav: await utilities.getNav(),
       errors: null,
       account,
-      notice: req.flash("notice") || [],
+      notice: req.flash("notice"),
     });
   } catch (err) {
     next(err);
@@ -163,7 +155,6 @@ async function buildUpdateAccount(req, res, next) {
 async function updateAccount(req, res, next) {
   try {
     const account_id = req.session.accountData.account_id;
-
     const { account_firstname, account_lastname, account_email } = req.body;
 
     await accountModel.updateAccount({
@@ -173,10 +164,11 @@ async function updateAccount(req, res, next) {
       account_email,
     });
 
-    req.session.accountData = await accountModel.getAccountById(account_id);
+    // Refresh session data
+    const updatedAccount = await accountModel.getAccountById(account_id);
+    req.session.accountData = updatedAccount;
 
     req.flash("notice", "Account updated successfully.");
-
     return res.redirect("/account/update");
   } catch (err) {
     next(err);
@@ -189,7 +181,6 @@ async function updateAccount(req, res, next) {
 async function updatePassword(req, res, next) {
   try {
     const account_id = req.session.accountData.account_id;
-
     const { account_password, account_password_confirm } = req.body;
 
     if (account_password !== account_password_confirm) {
@@ -198,11 +189,9 @@ async function updatePassword(req, res, next) {
     }
 
     const hashedPassword = await bcrypt.hash(account_password, 10);
-
     await accountModel.updatePassword(account_id, hashedPassword);
 
     req.flash("notice", "Password updated successfully.");
-
     return res.redirect("/account/update");
   } catch (err) {
     next(err);

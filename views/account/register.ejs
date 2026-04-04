@@ -1,17 +1,19 @@
 <h1>Register</h1>
 
-<!-- Flash notice message -->
+<!-- Flash notice message (success/warning from server) -->
 <% if (notice && notice.length > 0) { %>
-  <div class="flash-message">
-    <p><%= notice[0] %></p> <!-- Only show the first message -->
-  </div>
-<% } %>
-
-<!-- Validation errors -->
-<% if (Array.isArray(notice) && notice.length > 0) { %>
   <div class="flash-message">
     <p><%= notice[0] %></p>
   </div>
+<% } %>
+
+<!-- Server‑side validation errors -->
+<% if (errors) { %>
+  <ul class="notice">
+    <% errors.array().forEach(error => { %>
+      <li><%= error.msg %></li>
+    <% }); %>
+  </ul>
 <% } %>
 
 <div class="auth-container">
@@ -30,18 +32,12 @@
            value="<%= account_email || '' %>">
 
     <label for="account_password">Password:</label>
+    <div class="password-requirements">
+      Passwords must be at least 12 characters and contain at least 1 number, 1 capital letter, and 1 special character.
+    </div>
     <input type="password" name="account_password" id="account_password" required
-           minlength="4"
-           title="Password must be at least 4 characters.">
-
-    <p class="password-info">
-      Password must be at least 4 characters.
-    </p>
-
-    <label for="account_password2">Confirm Password:</label>
-    <input type="password" id="account_password2" name="account_password2" required
-           minlength="4"
-           title="Please enter the same password as above.">
+           pattern="^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{12,}$"
+           title="Password must be at least 12 characters with 1 number, 1 uppercase, and 1 special character">
 
     <button type="submit" class="submitBtn">Register</button>
   </form>

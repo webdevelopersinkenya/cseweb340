@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
-
 const accountController = require("../controllers/accountController");
 const utilities = require("../utilities/");
-const regValidate = require("../middleware/account-validation");
+const regValidate = require("../utilities/account-validation");
 
 /* **************************************
  * Middleware shortcuts
@@ -25,13 +24,15 @@ router.get(
   utilities.handleErrors(accountController.buildRegister)
 );
 
+// Registration POST – follows instruction exactly (registationRules typo included)
 router.post(
   "/register",
-  regValidate.registrationRules(),
+  regValidate.registationRules(),   // note: spelling matches instruction
   regValidate.checkRegData,
   utilities.handleErrors(accountController.registerAccount)
 );
 
+// Login POST – validation rules (optional, but keeps your app functional)
 router.post(
   "/login",
   regValidate.loginRules(),

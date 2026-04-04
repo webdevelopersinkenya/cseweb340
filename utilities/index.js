@@ -2,7 +2,7 @@ const inventoryModel = require("../models/inventory-model");
 require("dotenv").config();
 
 /* ****************************************
- * IMPORT GRID FUNCTION (from separate file)
+ * IMPORT GRID FUNCTION
  ****************************************/
 const buildClassificationGrid = require("./classification-grid");
 
@@ -34,21 +34,23 @@ async function getNav() {
  * LOGIN CHECK
  ****************************************/
 function checkLogin(req, res, next) {
-  if (req.session.loggedin) {
+  // Check if user is logged in using session data
+  if (req.session.loggedin && req.session.accountData) {
     return next();
   }
   req.flash("notice", "Please log in.");
   return res.redirect("/account/login");
 }
 
-
 /* ****************************************
  * LOGOUT CHECK
  ****************************************/
 function checkLogout(req, res, next) {
+  // If not logged in, allow access to login/register pages
   if (!req.session.loggedin) {
     return next();
   }
+    // Already logged in, redirect to dashboard
   return res.redirect("/account/");
 }
 
@@ -57,17 +59,14 @@ function checkLogout(req, res, next) {
  ****************************************/
 function checkAccountType(req, res, next) {
   const role = req.session?.accountData?.account_type?.toLowerCase();
-
   if (req.session?.loggedin && (role === "admin" || role === "employee")) {
     return next();
   }
-
   req.flash("notice", "Not authorized.");
-  return res.redirect("/account");
+  return res.redirect("/account/");
 }
-
 /* ****************************************
- * ERROR HANDLER
+ * ERROR HANDLER WRAPPER
  ****************************************/
 function handleErrors(fn) {
   return (req, res, next) => {
@@ -76,7 +75,7 @@ function handleErrors(fn) {
 }
 
 /* ****************************************
- * EXPORTS (ONLY ONCE)
+ * EXPORTS
  ****************************************/
 module.exports = {
   getNav,

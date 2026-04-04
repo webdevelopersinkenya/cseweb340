@@ -1,15 +1,13 @@
 <div class="account-dashboard">
-  <h2>Welcome <%= accountData.account_firstname %></h2>
+  <h2>Welcome <%= account.account_firstname %> <%= account.account_lastname %></h2>
 
   <!-- Update Account Info (ALL USERS) -->
   <p>
-    <a href="/account/update/<%= accountData.account_id %>">
-      Update Account Information
-    </a>
+    <a href="/account/update">Update Account Information</a>
   </p>
 
-  <% if (accountData.account_type === "Admin" || accountData.account_type === "Employee") { %>
+  <% if (account.account_type === "Admin" || account.account_type === "Employee") { %>
     <h3>Inventory Management</h3>
-   
+    <!-- Add admin/employee links here -->
   <% } %>
 </div>
