@@ -3,6 +3,7 @@ const router = express.Router();
 const inventoryController = require("../controllers/inventoryController");
 const { body } = require("express-validator");
 const utilities = require("../utilities/");
+const { checkJWT, checkRole } = require("../utilities/");
 
 /* **************************************
  * PUBLIC ROUTES (NO LOGIN REQUIRED)
@@ -48,6 +49,10 @@ router.get(
   utilities.handleErrors(inventoryController.buildAddClassification)
 );
 
+// Example: only Admin/Employee can add/edit/delete
+//router.post("/add-classification", checkJWT, checkRole(["Admin", "Employee"]), inventoryController.addClassification);
+//router.get("/edit-vehicle/:id", checkJWT, checkRole(["Admin", "Employee"]), inventoryController.editVehicleView);
+// etc.
 // Process add classification
 router.post(
   "/add-classification",

@@ -242,7 +242,9 @@ async function registerInventory(req, res) {
     });
   }
 }
-
+async function editVehicleView(req, res, next) {
+  res.send("Edit vehicle view – coming soon");
+}
 module.exports = {
   buildByClassificationName,
   buildByInvId,
@@ -250,5 +252,6 @@ module.exports = {
   buildAddClassification,
   registerClassification,
   buildAddInventory,
+    editVehicleView,
   registerInventory
 };

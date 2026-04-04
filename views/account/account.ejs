@@ -1,5 +1,12 @@
 <div class="account-dashboard">
-  <h2>Welcome <%= account.account_firstname %> <%= account.account_lastname %></h2>
+  <!-- Role‑specific greeting -->
+  <% if (account.account_type === "Client") { %>
+    <h2>Welcome Basic</h2>
+  <% } else if (account.account_type === "Admin" || account.account_type === "Employee") { %>
+    <h2>Welcome Happy</h2>
+  <% } else { %>
+    <h2>Welcome <%= account.account_firstname %></h2>
+  <% } %>
 
   <!-- Update Account Info (ALL USERS) -->
   <p>
@@ -8,6 +15,9 @@
 
   <% if (account.account_type === "Admin" || account.account_type === "Employee") { %>
     <h3>Inventory Management</h3>
-    <!-- Add admin/employee links here -->
+    <p>
+      <a href="/inventory/manage">Manage Inventory</a>
+    </p>
+    <!-- Add any other admin/employee links here -->
   <% } %>
 </div>

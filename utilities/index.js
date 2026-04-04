@@ -1,21 +1,14 @@
+const jwt = require("jsonwebtoken");
 const inventoryModel = require("../models/inventory-model");
-require("dotenv").config();
-
-/* ****************************************
- * IMPORT GRID FUNCTION
- ****************************************/
-const buildClassificationGrid = require("./classification-grid");
 
 /* ****************************************
  * NAVIGATION
  ****************************************/
 async function getNav() {
   let navList = "<ul><li><a href='/'>Home</a></li>";
-
   try {
     const classifications = await inventoryModel.getClassifications();
     const seen = new Set();
-
     classifications.forEach(({ classification_name }) => {
       if (!seen.has(classification_name)) {
         navList += `<li><a href="/inv/type/${classification_name}">${classification_name}</a></li>`;
@@ -25,16 +18,14 @@ async function getNav() {
   } catch (error) {
     console.error("Nav error:", error.message);
   }
-
   navList += "</ul>";
   return navList;
 }
 
 /* ****************************************
- * LOGIN CHECK
+ * LOGIN CHECK (session-based)
  ****************************************/
 function checkLogin(req, res, next) {
-  // Check if user is logged in using session data
   if (req.session.loggedin && req.session.accountData) {
     return next();
   }
@@ -46,16 +37,14 @@ function checkLogin(req, res, next) {
  * LOGOUT CHECK
  ****************************************/
 function checkLogout(req, res, next) {
-  // If not logged in, allow access to login/register pages
   if (!req.session.loggedin) {
     return next();
   }
-    // Already logged in, redirect to dashboard
   return res.redirect("/account/");
 }
 
 /* ****************************************
- * ROLE CHECK
+ * ROLE CHECK (for session-based, kept for compatibility)
  ****************************************/
 function checkAccountType(req, res, next) {
   const role = req.session?.accountData?.account_type?.toLowerCase();
@@ -65,6 +54,40 @@ function checkAccountType(req, res, next) {
   req.flash("notice", "Not authorized.");
   return res.redirect("/account/");
 }
+
+/* ****************************************
+ * JWT MIDDLEWARE (for Assignment 5)
+ ****************************************/
+function checkJWT(req, res, next) {
+  const token = req.cookies.token;
+  if (!token) {
+    req.flash("notice", "Please log in.");
+    return res.redirect("/account/login");
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    req.flash("notice", "Session expired. Please log in again.");
+    return res.redirect("/account/login");
+  }
+}
+
+function checkRole(requiredRoles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      req.flash("notice", "Not authorized.");
+      return res.redirect("/account/login");
+    }
+    if (requiredRoles.includes(req.user.account_type)) {
+      return next();
+    }
+    req.flash("notice", "You do not have permission to access this area.");
+    return res.redirect("/account/");
+  };
+}
+
 /* ****************************************
  * ERROR HANDLER WRAPPER
  ****************************************/
@@ -83,5 +106,6 @@ module.exports = {
   checkLogout,
   checkAccountType,
   handleErrors,
-  buildClassificationGrid,
+  checkJWT,
+  checkRole,
 };

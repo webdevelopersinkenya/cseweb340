@@ -1,47 +1,56 @@
-<h1><%= title %></h1>
+<h1>Update Account</h1>
 
-<!-- Flash Messages -->
-<% if (notice && notice.length > 0) { %>
-  <% notice.forEach(msg => { %>
-    <p class="notice"><%= msg %></p>
-  <% }) %>
+<!-- Flash messages -->
+<% if (notice && notice.length) { %>
+  <div class="flash-message"><p><%= notice[0] %></p></div>
 <% } %>
 
-<!-- Account Update Form -->
-<form action="/account/update" method="post" class="account-update-form">
-  <div class="form-group">
-    <label for="account_firstname">First Name</label>
-    <input type="text" name="account_firstname" id="account_firstname" value="<%= account.account_firstname || '' %>" required>
-  </div>
+<!-- Server‑side validation errors -->
+<% if (errors) { %>
+  <ul class="notice">
+    <% errors.array().forEach(error => { %>
+      <li><%= error.msg %></li>
+    <% }); %>
+  </ul>
+<% } %>
 
-  <div class="form-group">
-    <label for="account_lastname">Last Name</label>
-    <input type="text" name="account_lastname" id="account_lastname" value="<%= account.account_lastname || '' %>" required>
-  </div>
+<!-- Form 1: Update account info -->
+<h2>Account Update</h2>
+<form action="/account/update" method="POST">
+  <input type="hidden" name="account_id" value="<%= account.account_id %>">
 
-  <div class="form-group">
-    <label for="account_email">Email</label>
-    <input type="email" name="account_email" id="account_email" value="<%= account.account_email || '' %>" required>
-  </div>
+  <label for="account_firstname">First Name:</label>
+  <input type="text" name="account_firstname" id="account_firstname" required
+         value="<%= account.account_firstname %>">
 
-  <button type="submit">Update Account</button>
+  <label for="account_lastname">Last Name:</label>
+  <input type="text" name="account_lastname" id="account_lastname" required
+         value="<%= account.account_lastname %>">
+
+  <label for="account_email">Email:</label>
+  <input type="email" name="account_email" id="account_email" required
+         value="<%= account.account_email %>">
+
+  <button type="submit">Update Information</button>
 </form>
 
 <hr>
 
-<!-- Password Update Form -->
+<!-- Form 2: Change password -->
 <h2>Change Password</h2>
-<form action="/account/updatePassword" method="post" class="password-update-form">
-  <div class="form-group">
-    <label for="account_password">New Password</label>
-    <input type="password" name="account_password" id="account_password" class="form-group" required autocomplete="new-password">
-  </div>
+<form action="/account/updatePassword" method="POST">
+  <input type="hidden" name="account_id" value="<%= account.account_id %>">
 
-  <div class="form-group">
-    <label for="account_password_confirm">Confirm New Password</label>
-    <input type="password" name="account_password_confirm" id="account_password_confirm" class="form-group" required autocomplete="new-password">
+  <label for="account_password">New Password:</label>
+  <div class="password-requirements">
+    Password must be at least 12 characters, contain 1 uppercase, 1 number, and 1 special character.
   </div>
+  <input type="password" name="account_password" id="account_password" required
+         pattern="^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{12,}$"
+         title="Password must be at least 12 characters with 1 number, 1 uppercase, and 1 special character">
 
-  <button type="submit">Update Password</button>
+  <label for="account_password_confirm">Confirm New Password:</label>
+  <input type="password" name="account_password_confirm" id="account_password_confirm" required>
+
+  <button type="submit">Change Password</button>
 </form>
-

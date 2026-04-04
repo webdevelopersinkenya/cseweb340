@@ -1,6 +1,7 @@
 const accountModel = require("../models/account-model");
 const utilities = require("../utilities");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 console.log("REGISTER CONTROLLER RUNNING");
 
@@ -79,21 +80,37 @@ async function registerAccount(req, res) {
  * ====================================== */
 async function loginAccount(req, res) {
   const { account_email, account_password } = req.body;
-
   try {
     const user = await accountModel.getAccountByEmail(account_email);
     if (!user) {
       req.flash("notice", "Invalid email or password.");
       return res.redirect("/account/login");
     }
-
     const match = await bcrypt.compare(account_password, user.account_password);
     if (!match) {
       req.flash("notice", "Invalid email or password.");
       return res.redirect("/account/login");
     }
 
-    // Set session data
+    // Create JWT token
+    const token = jwt.sign(
+      {
+        account_id: user.account_id,
+        account_type: user.account_type,
+        account_firstname: user.account_firstname,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    // Set JWT as HTTP‑only cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    // Keep session for existing header logic (optional but simpler)
     req.session.loggedin = true;
     req.session.accountData = {
       account_id: user.account_id,
@@ -129,26 +146,25 @@ async function buildAccountManagement(req, res) {
  * ====================================== */
 async function buildUpdateAccount(req, res, next) {
   try {
-    if (!req.session.accountData) {
+    if (!req.session.accountData || !req.session.accountData.account_id) {
+      req.flash("notice", "Please log in first.");
       return res.redirect("/account/login");
     }
 
-    const account = await accountModel.getAccountById(
-      req.session.accountData.account_id
-    );
+    // Use session data directly (already has firstname, lastname, email, id)
+    const account = req.session.accountData;
 
     res.render("account/update-account", {
       title: "Update Account",
       nav: await utilities.getNav(),
       errors: null,
-      account,
+      account: account,
       notice: req.flash("notice"),
     });
   } catch (err) {
     next(err);
   }
 }
-
 /* ======================================
  * UPDATE ACCOUNT INFO
  * ====================================== */
@@ -169,7 +185,8 @@ async function updateAccount(req, res, next) {
     req.session.accountData = updatedAccount;
 
     req.flash("notice", "Account updated successfully.");
-    return res.redirect("/account/update");
+    // Redirect to dashboard (management view) instead of back to update page
+    return res.redirect("/account/");
   } catch (err) {
     next(err);
   }
@@ -192,21 +209,21 @@ async function updatePassword(req, res, next) {
     await accountModel.updatePassword(account_id, hashedPassword);
 
     req.flash("notice", "Password updated successfully.");
-    return res.redirect("/account/update");
+    // Redirect to dashboard
+    return res.redirect("/account/");
   } catch (err) {
     next(err);
   }
 }
-
 /* ======================================
  * LOGOUT
  * ====================================== */
 function accountLogout(req, res) {
+  res.clearCookie("token");
   req.session.destroy(() => {
     res.redirect("/");
   });
 }
-
 module.exports = {
   buildLogin,
   buildRegister,
