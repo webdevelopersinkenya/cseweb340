@@ -252,6 +252,6 @@ module.exports = {
   buildAddClassification,
   registerClassification,
   buildAddInventory,
-    editVehicleView,
+  editVehicleView,
   registerInventory
 };

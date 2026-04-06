@@ -151,11 +151,13 @@ validate.checkUpdateData = async (req, res, next) => {
         errors,
         title: "Update Account",
         nav,
-        account: {
+        account: {   // sticky values
+          account_id: req.body.account_id,
           account_firstname: req.body.account_firstname,
           account_lastname: req.body.account_lastname,
           account_email: req.body.account_email,
         },
+        notice: req.flash("notice"),
       });
     }
     next();
@@ -163,7 +165,6 @@ validate.checkUpdateData = async (req, res, next) => {
     next(err);
   }
 };
-
 /* ******************************
  * PASSWORD CHANGE RULES
  * ***************************** */

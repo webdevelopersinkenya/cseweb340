@@ -1,7 +1,13 @@
 <div class="account-dashboard">
   <!-- Role‑specific greeting -->
   <% if (account.account_type === "Client") { %>
-    <h2>Welcome Basic</h2>
+    <h2>Welcome </h2>
+    <% if (notice && notice.length) { %>
+  <div class="flash-message notice"><%= notice[0] %></div>
+<% } %>
+<% if (error && error.length) { %>
+  <div class="flash-message error"><%= error[0] %></div>
+<% } %>
   <% } else if (account.account_type === "Admin" || account.account_type === "Employee") { %>
     <h2>Welcome Happy</h2>
   <% } else { %>

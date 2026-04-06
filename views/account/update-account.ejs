@@ -2,7 +2,10 @@
 
 <!-- Flash messages -->
 <% if (notice && notice.length) { %>
-  <div class="flash-message"><p><%= notice[0] %></p></div>
+  <div class="flash-message notice"><%= notice[0] %></div>
+<% } %>
+<% if (error && error.length) { %>
+  <div class="flash-message error"><%= error[0] %></div>
 <% } %>
 
 <!-- Server‑side validation errors -->
