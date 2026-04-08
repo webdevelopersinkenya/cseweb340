@@ -1,9 +1,10 @@
+
 const accountModel = require("../models/account-model");
 const utilities = require("../utilities");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-console.log("REGISTER CONTROLLER RUNNING");
+console.log("ACCOUNT CONTROLLER LOADED");
 
 /* ======================================
  * LOGIN VIEW
@@ -12,8 +13,8 @@ async function buildLogin(req, res) {
   res.render("account/login", {
     title: "Login",
     nav: await utilities.getNav(),
-    errors: null,               // for server-side validation errors
-    account_email: "",          // sticky field (empty initially)
+    errors: null,
+    account_email: "",
     notice: req.flash("notice"),
   });
 }
@@ -25,8 +26,8 @@ async function buildRegister(req, res) {
   res.render("account/register", {
     title: "Register",
     nav: await utilities.getNav(),
-    errors: null,               // for server-side validation errors
-    account_firstname: "",      // sticky fields
+    errors: null,
+    account_firstname: "",
     account_lastname: "",
     account_email: "",
     notice: req.flash("notice"),
@@ -34,31 +35,22 @@ async function buildRegister(req, res) {
 }
 
 /* ======================================
- * REGISTER ACCOUNT (called only after validation passes)
+ * REGISTER ACCOUNT (called after validation passes)
  * ====================================== */
 async function registerAccount(req, res) {
-  const {
-    account_firstname,
-    account_lastname,
-    account_email,
-    account_password,
-  } = req.body;
+  const { account_firstname, account_lastname, account_email, account_password } = req.body;
 
   try {
-    // Check if email already exists
     const emailExists = await accountModel.checkExistingEmail(account_email);
     if (emailExists) {
       req.flash("notice", "Email already exists. Please login.");
       return res.redirect("/account/login");
     }
 
-    // Set a default account type – change "user" to match your database column (e.g., 'Client')
-    const account_type = "user";
-
-    // Hash password
+    // Use 'Client' as default account type (adjust if your DB uses 'user')
+    const account_type = "Client";
     const hashedPassword = await bcrypt.hash(account_password, 10);
 
-    // Register the user
     await accountModel.registerAccount(
       account_firstname,
       account_lastname,
@@ -75,44 +67,35 @@ async function registerAccount(req, res) {
     return res.redirect("/account/register");
   }
 }
+
 /* ======================================
- * LOGIN ACCOUNT
+ * LOGIN ACCOUNT (creates JWT and sets cookie)
  * ====================================== */
 async function loginAccount(req, res) {
   const { account_email, account_password } = req.body;
+
   try {
+    console.log("LOGIN STARTED");
+
     const user = await accountModel.getAccountByEmail(account_email);
+
+    console.log("USER FOUND:", user ? "YES" : "NO");
+
     if (!user) {
       req.flash("notice", "Invalid email or password.");
       return res.redirect("/account/login");
     }
+
     const match = await bcrypt.compare(account_password, user.account_password);
+
+    console.log("PASSWORD MATCH:", match);
+
     if (!match) {
       req.flash("notice", "Invalid email or password.");
       return res.redirect("/account/login");
     }
 
-    // Create JWT token
-    const token = jwt.sign(
-      {
-        account_id: user.account_id,
-        account_type: user.account_type,
-        account_firstname: user.account_firstname,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    // Set JWT as HTTP‑only cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-      secure: process.env.NODE_ENV === "production",
-    });
-
-    // Keep session for existing header logic (optional but simpler)
-    req.session.loggedin = true;
-    req.session.accountData = {
+    const payload = {
       account_id: user.account_id,
       account_firstname: user.account_firstname,
       account_lastname: user.account_lastname,
@@ -120,72 +103,115 @@ async function loginAccount(req, res) {
       account_type: user.account_type,
     };
 
-    req.flash("notice", `Welcome ${user.account_firstname}`);
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    console.log("TOKEN CREATED");
+
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false,
+    });
+
+    console.log("COOKIE SET");
+
     return res.redirect("/account/");
   } catch (error) {
-    console.error("Login error:", error);
-    return res.status(500).send("Server error");
+    console.error("LOGIN ERROR:", error);
+    return res.status(500).send(error.message);
   }
 }
-
 /* ======================================
- * ACCOUNT DASHBOARD
+ * ACCOUNT DASHBOARD (uses JWT user)
  * ====================================== */
 async function buildAccountManagement(req, res) {
+  // Ensure user is attached (middleware should have set req.user)
+  if (!req.user) {
+    req.flash("notice", "Please log in.");
+    return res.redirect("/account/login");
+  }
+
   res.render("account/account", {
     title: "Account Dashboard",
     nav: await utilities.getNav(),
     errors: null,
-    account: req.session.accountData,
+    account: req.user,
     notice: req.flash("notice"),
   });
 }
 
 /* ======================================
- * UPDATE ACCOUNT VIEW
+ * UPDATE ACCOUNT VIEW (uses JWT user)
  * ====================================== */
 async function buildUpdateAccount(req, res, next) {
   try {
-    if (!req.session.accountData || !req.session.accountData.account_id) {
+    if (!req.user) {
       req.flash("notice", "Please log in first.");
       return res.redirect("/account/login");
     }
 
-    // Use session data directly (already has firstname, lastname, email, id)
-    const account = req.session.accountData;
+    // Optionally refresh from DB to get latest data
+    const freshAccount = await accountModel.getAccountById(req.user.account_id);
+    const accountData = freshAccount || req.user;
 
     res.render("account/update-account", {
       title: "Update Account",
       nav: await utilities.getNav(),
       errors: null,
-      account: account,
+      account: accountData,
       notice: req.flash("notice"),
     });
   } catch (err) {
     next(err);
   }
 }
+
 /* ======================================
- * UPDATE ACCOUNT INFO
+ * UPDATE ACCOUNT INFO (updates DB, refreshes JWT & session)
  * ====================================== */
 async function updateAccount(req, res, next) {
   try {
-    const account_id = req.session.accountData.account_id;
+    const account_id = req.user.account_id;
     const { account_firstname, account_lastname, account_email } = req.body;
 
-    await accountModel.updateAccount({
+    // Call model with correct positional arguments
+    const updatedAccount = await accountModel.updateAccount(
       account_id,
       account_firstname,
       account_lastname,
-      account_email,
-    });
+      account_email
+    );
 
-    // Refresh session data
-    const updatedAccount = await accountModel.getAccountById(account_id);
+    if (!updatedAccount) {
+      req.flash("notice", "Update failed. Please try again.");
+      return res.redirect("/account/update");
+    }
+
+    // Refresh session data (if you still use session)
     req.session.accountData = updatedAccount;
 
+    // Create new JWT token with updated data
+    const newToken = jwt.sign(
+      {
+        account_id: updatedAccount.account_id,
+        account_firstname: updatedAccount.account_firstname,
+        account_lastname: updatedAccount.account_lastname,
+        account_email: updatedAccount.account_email,
+        account_type: updatedAccount.account_type,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("jwt", newToken, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+      secure: process.env.NODE_ENV === "production",
+    });
+
     req.flash("notice", "Account updated successfully.");
-    // Redirect to dashboard (management view) instead of back to update page
     return res.redirect("/account/");
   } catch (err) {
     next(err);
@@ -193,11 +219,11 @@ async function updateAccount(req, res, next) {
 }
 
 /* ======================================
- * UPDATE PASSWORD
+ * UPDATE PASSWORD (changes password, redirects to dashboard)
  * ====================================== */
 async function updatePassword(req, res, next) {
   try {
-    const account_id = req.session.accountData.account_id;
+    const account_id = req.user.account_id;
     const { account_password, account_password_confirm } = req.body;
 
     if (account_password !== account_password_confirm) {
@@ -209,21 +235,24 @@ async function updatePassword(req, res, next) {
     await accountModel.updatePassword(account_id, hashedPassword);
 
     req.flash("notice", "Password updated successfully.");
-    // Redirect to dashboard
     return res.redirect("/account/");
   } catch (err) {
     next(err);
   }
 }
+
 /* ======================================
- * LOGOUT
+ * LOGOUT (clears JWT cookie and destroys session)
  * ====================================== */
 function accountLogout(req, res) {
-  res.clearCookie("token");
-  req.session.destroy(() => {
-    res.redirect("/");
-  });
+  res.clearCookie("jwt"); //   match cookie name
+  req.flash("notice", "You have been logged out.");
+  return res.redirect("/");
 }
+
+/* ======================================
+ * EXPORTS
+ * ====================================== */
 module.exports = {
   buildLogin,
   buildRegister,

@@ -245,6 +245,24 @@ async function registerInventory(req, res) {
 async function editVehicleView(req, res, next) {
   res.send("Edit vehicle view – coming soon");
 }
+async function editVehicleView(req, res, next) {
+  res.send("Edit vehicle view - coming soon");
+}
+
+async function updateInventory(req, res, next) {
+  res.send("Update inventory - coming soon");
+}
+
+async function deleteInventory(req, res, next) {
+  res.send("Delete inventory - coming soon");
+}
+
+module.exports = {
+  // ... existing exports
+  editVehicleView,
+  updateInventory,
+  deleteInventory,
+};
 module.exports = {
   buildByClassificationName,
   buildByInvId,

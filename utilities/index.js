@@ -1,9 +1,7 @@
 const jwt = require("jsonwebtoken");
 const inventoryModel = require("../models/inventory-model");
 
-/* ****************************************
- * NAVIGATION
- ****************************************/
+// Navigation
 async function getNav() {
   let navList = "<ul><li><a href='/'>Home</a></li>";
   try {
@@ -22,44 +20,29 @@ async function getNav() {
   return navList;
 }
 
-/* ****************************************
- * LOGIN CHECK (session-based)
- ****************************************/
-function checkLogin(req, res, next) {
-  if (req.session.loggedin && req.session.accountData) {
-    return next();
-  }
-  req.flash("notice", "Please log in.");
-  return res.redirect("/account/login");
+// Error handler wrapper
+function handleErrors(fn) {
+  return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
 
-/* ****************************************
- * LOGOUT CHECK
- ****************************************/
-function checkLogout(req, res, next) {
-  if (!req.session.loggedin) {
-    return next();
-  }
-  return res.redirect("/account/");
+// Generate JWT token
+function generateToken(user) {
+  return jwt.sign(
+    {
+      account_id: user.account_id,
+      account_firstname: user.account_firstname,
+      account_lastname: user.account_lastname,
+      account_email: user.account_email,
+      account_type: user.account_type,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" }
+  );
 }
 
-/* ****************************************
- * ROLE CHECK (for session-based, kept for compatibility)
- ****************************************/
-function checkAccountType(req, res, next) {
-  const role = req.session?.accountData?.account_type?.toLowerCase();
-  if (req.session?.loggedin && (role === "admin" || role === "employee")) {
-    return next();
-  }
-  req.flash("notice", "Not authorized.");
-  return res.redirect("/account/");
-}
-
-/* ****************************************
- * JWT MIDDLEWARE (for Assignment 5)
- ****************************************/
-function checkJWT(req, res, next) {
-  const token = req.cookies.token;
+// Verify JWT from cookie (name = "jwt")
+function verifyToken(req, res, next) {
+  const token = req.cookies.jwt;
   if (!token) {
     req.flash("notice", "Please log in.");
     return res.redirect("/account/login");
@@ -67,45 +50,73 @@ function checkJWT(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
+    res.locals.user = decoded;
     next();
   } catch (err) {
+    res.clearCookie("jwt");
     req.flash("notice", "Session expired. Please log in again.");
     return res.redirect("/account/login");
   }
 }
 
-function checkRole(requiredRoles) {
+// Redirect if already logged in (for login/register pages)
+function redirectIfLoggedIn(req, res, next) {
+  const token = req.cookies.jwt;
+  if (token) {
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+      return res.redirect("/account/");
+    } catch (err) {}
+  }
+  next();
+}
+
+// Role-based access control
+function requireRole(roles) {
   return (req, res, next) => {
     if (!req.user) {
-      req.flash("notice", "Not authorized.");
+      req.flash("notice", "Please log in.");
       return res.redirect("/account/login");
     }
-    if (requiredRoles.includes(req.user.account_type)) {
+    if (roles.includes(req.user.account_type)) {
       return next();
     }
-    req.flash("notice", "You do not have permission to access this area.");
+    req.flash("error", "Access denied. You do not have permission.");
     return res.redirect("/account/");
   };
 }
-
-/* ****************************************
- * ERROR HANDLER WRAPPER
- ****************************************/
-function handleErrors(fn) {
-  return (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
+// For backward compatibility (session-based – not used but kept)
+function checkLogin(req, res, next) {
+  if (req.cookies.jwt) return next();
+  req.flash("notice", "Please log in.");
+  return res.redirect("/account/login");
 }
 
-/* ****************************************
- * EXPORTS
- ****************************************/
+function checkLogout(req, res, next) {
+  if (!req.cookies.jwt) return next();
+  return res.redirect("/account/");
+}
+// Build a select list of classifications (for inventory forms)
+async function buildClassificationList() {
+  const inventoryModel = require("../models/inventory-model");
+  const classifications = await inventoryModel.getClassifications();
+  let list = '<select name="classification_id" id="classification_id" required>';
+  list += '<option value="">Choose a classification</option>';
+  classifications.forEach((cls) => {
+    list += `<option value="${cls.classification_id}">${cls.classification_name}</option>`;
+  });
+  list += '</select>';
+  return list;
+}
+
 module.exports = {
   getNav,
+  handleErrors,
+  generateToken,
+  verifyToken,
+  redirectIfLoggedIn,
+  requireRole,
   checkLogin,
   checkLogout,
-  checkAccountType,
-  handleErrors,
-  checkJWT,
-  checkRole,
+  buildClassificationList,   
 };

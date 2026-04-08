@@ -3,96 +3,40 @@ const router = express.Router();
 const inventoryController = require("../controllers/inventoryController");
 const { body } = require("express-validator");
 const utilities = require("../utilities/");
-const { checkJWT, checkRole } = require("../utilities/");
+const { verifyToken, requireRole } = utilities;
 
-/* **************************************
- * PUBLIC ROUTES (NO LOGIN REQUIRED)
- **************************************/
+// Validation rules (must be defined before use)
+const inventoryValidationRules = [
+  body("inv_make").trim().isLength({ min: 3 }).withMessage("Make required"),
+  body("inv_model").trim().isLength({ min: 3 }).withMessage("Model required"),
+  body("inv_year").isInt({ min: 1900, max: new Date().getFullYear() + 2 }).withMessage("Valid year required"),
+  body("inv_description").trim().isLength({ min: 10 }).withMessage("Description too short"),
+  body("inv_image").trim().isLength({ min: 6 }).withMessage("Image path required"),
+  body("inv_thumbnail").trim().isLength({ min: 6 }).withMessage("Thumbnail path required"),
+  body("inv_price").isFloat({ min: 0 }).withMessage("Price must be positive"),
+  body("inv_miles").isInt({ min: 0 }).withMessage("Miles must be positive"),
+  body("inv_color").trim().isLength({ min: 3 }).withMessage("Color required"),
+  body("classification_id").isInt({ min: 1 }).withMessage("Classification required"),
+];
 
-// Inventory management dashboard
-router.get(
-  "/",
-  //utilities.checkJWTToken,
-  //utilities.checkAccountType,
-  utilities.handleErrors(inventoryController.buildManagement)
-);
+/* PUBLIC ROUTES (no login required) */
+router.get("/", utilities.handleErrors(inventoryController.buildManagement));
+router.get("/type/:classificationName", utilities.handleErrors(inventoryController.buildByClassificationName));
+router.get("/detail/:invId", utilities.handleErrors(inventoryController.buildByInvId));
 
-// View inventory by classification
-router.get(
-  "/type/:classificationName",
-  //utilities.checkJWTToken,
-  //utilities.checkAccountType,
-  utilities.handleErrors(inventoryController.buildByClassificationName)
-);
-
-// View single inventory item
-router.get(
-  "/detail/:invId",
-  //utilities.checkJWTToken,
-  //utilities.checkAccountType,
-  utilities.handleErrors(inventoryController.buildByInvId)
-);
-router.get("/", (req, res, next) => {
-  console.log("SESSION DATA:", req.session.accountData);
-  next();
-}, utilities.handleErrors(inventoryController.buildManagement));
-
-/* **************************************
- * CLASSIFICATION ROUTES (OPEN FOR NOW)
- **************************************/
-
-// Add classification form
-router.get(
-  "/add-classification",
-  //utilities.checkJWTToken,
-  //utilities.checkAccountType,
-  utilities.handleErrors(inventoryController.buildAddClassification)
-);
-
-// Example: only Admin/Employee can add/edit/delete
-//router.post("/add-classification", checkJWT, checkRole(["Admin", "Employee"]), inventoryController.addClassification);
-//router.get("/edit-vehicle/:id", checkJWT, checkRole(["Admin", "Employee"]), inventoryController.editVehicleView);
-// etc.
-// Process add classification
-router.post(
-  "/add-classification",
-  body("classification_name")
-    .trim()
-    .isLength({ min: 1 })
-    .withMessage("Classification name is required.")
-    .matches(/^[A-Za-z0-9]+$/)
-    .withMessage("No spaces or special characters."),
+/* PROTECTED ROUTES (Admin/Employee only) */
+router.get("/add-classification", verifyToken, requireRole(["Admin", "Employee"]), utilities.handleErrors(inventoryController.buildAddClassification));
+router.post("/add-classification", verifyToken, requireRole(["Admin", "Employee"]),
+  body("classification_name").trim().isLength({ min: 1 }).withMessage("Classification name required.").matches(/^[A-Za-z0-9]+$/).withMessage("No spaces or special characters."),
   utilities.handleErrors(inventoryController.registerClassification)
 );
 
-/* **************************************
- * INVENTORY ROUTES (OPEN FOR NOW)
- **************************************/
+router.get("/edit-vehicle/:invId", verifyToken, requireRole(["Admin", "Employee"]), utilities.handleErrors(inventoryController.editVehicleView));
+router.post("/edit-vehicle", verifyToken, requireRole(["Admin", "Employee"]), inventoryValidationRules, utilities.handleErrors(inventoryController.updateInventory));
 
-const inventoryValidationRules = [
-  body("inv_make").trim().isLength({ min: 3 }),
-  body("inv_model").trim().isLength({ min: 3 }),
-  body("inv_year").isInt({ min: 1900, max: new Date().getFullYear() + 2 }),
-  body("inv_description").trim().isLength({ min: 10 }),
-  body("inv_image").trim().isLength({ min: 6 }),
-  body("inv_thumbnail").trim().isLength({ min: 6 }),
-  body("inv_price").isFloat({ min: 0 }),
-  body("inv_miles").isInt({ min: 0 }),
-  body("inv_color").trim().isLength({ min: 3 }),
-  body("classification_id").isInt({ min: 1 })
-];
+router.post("/delete-vehicle", verifyToken, requireRole(["Admin", "Employee"]), utilities.handleErrors(inventoryController.deleteInventory));
 
-// Add inventory form
-router.get(
-  "/add-inventory",
-  utilities.handleErrors(inventoryController.buildAddInventory)
-);
-
-// Process add inventory
-router.post(
-  "/add-inventory",
-  inventoryValidationRules,
-  utilities.handleErrors(inventoryController.registerInventory)
-);
+router.get("/add-inventory", verifyToken, requireRole(["Admin", "Employee"]), utilities.handleErrors(inventoryController.buildAddInventory));
+router.post("/add-inventory", verifyToken, requireRole(["Admin", "Employee"]), inventoryValidationRules, utilities.handleErrors(inventoryController.registerInventory));
 
 module.exports = router;

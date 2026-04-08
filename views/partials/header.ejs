@@ -2,12 +2,10 @@
   <a href="/" title="Return to home page">
     <h1 class="logo-text">CSE MOTORS</h1>
   </a>
-
   <div class="account-links">
-    <% if (loggedin && accountData) { %>
-      <!-- Welcome Basic link (clickable) to account dashboard -->
-      <a href="/account/" title="Go to your dashboard">Welcome </a>
-      <span>Welcome, <%= accountData.account_firstname %>!</span>
+ <% if (typeof user !== 'undefined' && user) { %>
+      <a href="/account/" title="Go to your dashboard">Welcome Basic</a>
+      <span>Welcome, <%= user.account_firstname %>!</span>
       <a href="/account/" title="Manage your account">Account</a>
       <a href="/account/logout" title="Click to log out">Logout</a>
     <% } else { %>

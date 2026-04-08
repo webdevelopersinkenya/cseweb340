@@ -1,29 +1,23 @@
 <div class="account-dashboard">
-  <!-- Role‑specific greeting -->
-  <% if (account.account_type === "Client") { %>
-    <h2>Welcome </h2>
-    <% if (notice && notice.length) { %>
-  <div class="flash-message notice"><%= notice[0] %></div>
-<% } %>
-<% if (error && error.length) { %>
-  <div class="flash-message error"><%= error[0] %></div>
-<% } %>
-  <% } else if (account.account_type === "Admin" || account.account_type === "Employee") { %>
-    <h2>Welcome Happy</h2>
-  <% } else { %>
-    <h2>Welcome <%= account.account_firstname %></h2>
+  <% if (notice && notice.length) { %>
+    <div class="flash-message notice"><%= notice[0] %></div>
+  <% } %>
+  <% if (error && error.length) { %>
+    <div class="flash-message error"><%= error[0] %></div>
   <% } %>
 
-  <!-- Update Account Info (ALL USERS) -->
-  <p>
-    <a href="/account/update">Update Account Information</a>
-  </p>
+  <% if (account.account_type === "Client") { %>
+  <h2>Welcome Basic</h2>
+<% } else if (account.account_type === "Admin" || account.account_type === "Employee") { %>
+  <h2>Welcome Happy</h2>
+<% } else { %>
+  <h2>Welcome <%= account.account_firstname %></h2>
+<% } %>
+
+  <p><a href="/account/update">Update Account Information</a></p>
 
   <% if (account.account_type === "Admin" || account.account_type === "Employee") { %>
     <h3>Inventory Management</h3>
-    <p>
-      <a href="/inventory/manage">Manage Inventory</a>
-    </p>
-    <!-- Add any other admin/employee links here -->
+    <p><a href="/inv/add-inventory">Add Inventory</a> | <a href="/inv/add-classification">Add Classification</a></p>
   <% } %>
 </div>

@@ -8,6 +8,10 @@ if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET is not defined in the .env file");
 }
 
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET is not defined in the .env file");
+}
+
 /*******************************
  * Required modules
  *******************************/
@@ -17,6 +21,7 @@ const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const flash = require("connect-flash");
 const pgSession = require("connect-pg-simple")(session);
+const jwt = require("jsonwebtoken");
 
 const app = express();
 
@@ -31,21 +36,21 @@ const pool = require("./database");
 (async () => {
   try {
     const result = await pool.query("SELECT NOW()");
-    console.log(" Database connected:", result.rows[0].now);
+    console.log("✅ Database connected:", result.rows[0].now);
   } catch (err) {
-    console.error(" DB connection failed:", err.message);
+    console.error("❌ DB connection failed:", err.message);
   }
 })();
 
 /*******************************
- * Routes
+ * Routes (imported after dependencies)
  *******************************/
 const staticRoutes = require("./routes/static");
 const inventoryRoute = require("./routes/inventoryRoute");
 const accountRoute = require("./routes/accountRoute");
 
 /*******************************
- * Session Middleware
+ * Session Middleware (for flash messages & non‑auth data)
  *******************************/
 app.use(
   session({
@@ -61,28 +66,53 @@ app.use(
 );
 
 /*******************************
- * Global variables
- *******************************/
-app.use((req, res, next) => {
-  res.locals.loggedin = Boolean(req.session.accountData);
-  res.locals.accountData = req.session.accountData || null;
-  next();
-});
-/*******************************
- * Flash messages (FIXED)
+ * Flash messages
  *******************************/
 app.use(flash());
 
+// Make flash messages available in all views
 app.use((req, res, next) => {
   res.locals.notice = req.flash("notice");
   res.locals.error = req.flash("error");
   next();
 });
+
 /*******************************
- * Middleware
+ * Cookie Parser (required for JWT)
  *******************************/
 app.use(cookieParser());
 
+/*******************************
+ * JWT Middleware – decode token and attach user globally
+ *******************************/
+app.use((req, res, next) => {
+  const token = req.cookies.jwt;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+      res.locals.user = decoded;
+    } catch (err) {
+      res.clearCookie("jwt");
+      res.locals.user = null;   //  ensure defined
+    }
+  } else {
+    res.locals.user = null;     //  ensure defined
+  }
+  next();
+});
+/*******************************
+ * Global view variables (based on JWT)
+ *******************************/
+app.use((req, res, next) => {
+  res.locals.loggedin = !!res.locals.user;
+  res.locals.accountData = res.locals.user || null;
+  next();
+});
+
+/*******************************
+ * Navigation & other utilities
+ *******************************/
 const utilities = require("./utilities");
 
 app.use(async (req, res, next) => {
@@ -96,14 +126,14 @@ app.use(async (req, res, next) => {
 });
 
 /*******************************
- * Body Parsers
+ * Body Parsers & Static Files
  *******************************/
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 /*******************************
- * View Engine
+ * View Engine (EJS with layouts)
  *******************************/
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -111,14 +141,14 @@ app.use(expressLayouts);
 app.set("layout", "./layouts/layout");
 
 /*******************************
- * Routes
+ * Application Routes
  *******************************/
 app.use("/", staticRoutes);
 app.use("/inv", inventoryRoute);
 app.use("/account", accountRoute);
 
 /*******************************
- * 404 Handler
+ * 404 Error Handler (page not found)
  *******************************/
 app.use(async (req, res) => {
   const nav = await utilities.getNav();
@@ -126,24 +156,23 @@ app.use(async (req, res) => {
     title: "404 Not Found",
     message: "Sorry, we can't find that page.",
     nav,
-    loggedin: req.session?.accountData ? true : false,
-    accountData: req.session?.accountData || null,
+    loggedin: res.locals.loggedin,
+    accountData: res.locals.user,
   });
 });
 
 /*******************************
- * Error Handler
+ * Global Error Handler
  *******************************/
 app.use(async (err, req, res, next) => {
   const nav = await utilities.getNav();
-  console.error(`Error: ${err.message}`);
-
+  console.error(`❌ Server Error: ${err.message}`);
   res.status(500).render("errors/error", {
     title: "Server Error",
     message: err.message,
     nav,
-    loggedin: req.session?.accountData ? true : false,
-    accountData: req.session?.accountData || null,
+    loggedin: res.locals.loggedin,
+    accountData: res.locals.user,
   });
 });
 
@@ -151,7 +180,6 @@ app.use(async (err, req, res, next) => {
  * Start Server
  *******************************/
 const port = process.env.PORT || 5500;
-
 app.listen(port, () => {
   console.log(`🚀 App is running on http://localhost:${port}`);
 });
