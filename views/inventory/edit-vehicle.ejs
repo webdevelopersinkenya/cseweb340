@@ -1,8 +1,9 @@
-<h1>Add New Vehicle</h1>
+<h1>Edit Vehicle</h1>
 <% if (flashMessage && flashMessage.length) { %><div class="flash-message"><%= flashMessage[0] %></div><% } %>
 <% if (errors && errors.length) { %><ul class="error-list"><% errors.forEach(e => { %><li><%= e.msg %></li><% }); %></ul><% } %>
 
-<form action="/inv/add-inventory" method="POST" id="invForm">
+<form action="/inv/edit-vehicle/<%= vehicle.inv_id %>" method="POST" id="editForm">
+  <input type="hidden" name="inv_id" value="<%= vehicle.inv_id %>">
   <label>Make:</label> <input type="text" name="inv_make" value="<%= vehicle.inv_make %>" required>
   <label>Model:</label> <input type="text" name="inv_model" value="<%= vehicle.inv_model %>" required>
   <label>Year:</label> <input type="number" name="inv_year" value="<%= vehicle.inv_year %>" required min="1900" max="2026">
@@ -19,10 +20,10 @@
       <option value="<%= c.classification_id %>" <%= (vehicle.classification_id == c.classification_id) ? 'selected' : '' %>><%= c.classification_name %></option>
     <% }); %>
   </select>
-  <button type="submit">Add Vehicle</button>
+  <button type="submit">Update Vehicle</button>
 </form>
 <script>
-  document.getElementById('invForm').addEventListener('submit', function(e) {
+  document.getElementById('editForm').addEventListener('submit', function(e) {
     const price = parseFloat(this.inv_price.value);
     const miles = parseInt(this.inv_miles.value);
     if (isNaN(price) || price < 0) { alert("Price must be a positive number."); e.preventDefault(); }

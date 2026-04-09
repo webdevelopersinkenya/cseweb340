@@ -1,17 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <link rel="stylesheet" href="/styles.css"> <!-- Make sure this links your CSS -->
-</head>
-<body>
+<h1><%= classificationName %> Vehicles</h1>
+<% if (flashMessage && flashMessage.length) { %><div class="flash-message"><%= flashMessage[0] %></div><% } %>
 
-  <main>
-    <h1><%= classificationName %> Vehicles</h1>
-
-    <!-- Render the grid HTML, which already includes a "no vehicles" message if empty -->
-    <%- grid %> <!-- use <%- %> to render raw HTML from gridHtml -->
-    
-  </main>
-
-</body>
-</html>
+<% if (vehicles && vehicles.length) { %>
+  <div class="vehicle-grid">
+    <% vehicles.forEach(v => { %>
+      <div class="vehicle-card">
+        <a href="/inv/detail/<%= v.inv_id %>">
+          <img src="<%= v.inv_thumbnail %>" alt="<%= v.inv_make %> <%= v.inv_model %>">
+          <h3><%= v.inv_make %> <%= v.inv_model %></h3>
+          <p>$<%= v.inv_price %></p>
+        </a>
+      </div>
+    <% }); %>
+  </div>
+<% } else { %>
+  <p>No vehicles found in this classification.</p>
+<% } %>

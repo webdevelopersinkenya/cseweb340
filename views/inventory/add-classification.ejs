@@ -1,35 +1,18 @@
-<h1><%= title %></h1>
+<h1>Add New Classification</h1>
+<% if (flashMessage && flashMessage.length) { %><div class="flash-message"><%= flashMessage[0] %></div><% } %>
+<% if (errors && errors.length) { %><ul class="error-list"><% errors.forEach(e => { %><li><%= e.msg %></li><% }); %></ul><% } %>
 
-<!-- Flash messages -->
-<% if (flashMessage && flashMessage.length > 0) { %>
-  <% flashMessage.forEach(msg => { %>
-    <p style="color: green;"><%= msg %></p>
-  <% }) %>
-<% } %>
-
-<!-- Validation errors -->
-<% if (errors && errors.length > 0) { %>
-  <ul style="color: red;">
-    <% errors.forEach(error => { %>
-      <li><%= error.msg %></li>
-    <% }) %>
-  </ul>
-<% } %>
-
-<form action="/inv/add-classification" method="post">
-
-  <label for="classification_name">Classification Name</label>
-  <input 
-    type="text" 
-    id="classification_name" 
-    name="classification_name" 
-    required 
-    minlength="1"
-    pattern="^[A-Za-z0-9]+$"
-    title="No spaces or special characters"
-    value="<%= classification_name || '' %>">
-
-  <small>No spaces or special characters allowed.</small>
-
-  <button type="submit">Add Classification</button>
+<form action="/inv/add-classification" method="POST" id="classForm">
+  <label>Classification Name:</label>
+  <input type="text" name="classification_name" value="<%= classification_name %>" required pattern="^[A-Za-z0-9]+$" title="Only letters and numbers, no spaces">
+  <button type="submit">Add</button>
 </form>
+<script>
+  document.getElementById('classForm').addEventListener('submit', function(e) {
+    const name = this.querySelector('[name="classification_name"]');
+    if (!/^[A-Za-z0-9]+$/.test(name.value)) {
+      alert('Only letters and numbers allowed, no spaces.');
+      e.preventDefault();
+    }
+  });
+</script>

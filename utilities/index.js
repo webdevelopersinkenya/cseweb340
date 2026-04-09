@@ -6,13 +6,9 @@ async function getNav() {
   let navList = "<ul><li><a href='/'>Home</a></li>";
   try {
     const classifications = await inventoryModel.getClassifications();
-    const seen = new Set();
-    classifications.forEach(({ classification_name }) => {
-      if (!seen.has(classification_name)) {
-        navList += `<li><a href="/inv/type/${classification_name}">${classification_name}</a></li>`;
-        seen.add(classification_name);
-      }
-    });
+    for (const cls of classifications) {
+      navList += `<li><a href="/inv/type/${cls.classification_name}">${cls.classification_name}</a></li>`;
+    }
   } catch (error) {
     console.error("Nav error:", error.message);
   }
@@ -40,7 +36,7 @@ function generateToken(user) {
   );
 }
 
-// Verify JWT from cookie (name = "jwt")
+// Verify JWT from cookie
 function verifyToken(req, res, next) {
   const token = req.cookies.jwt;
   if (!token) {
@@ -59,7 +55,7 @@ function verifyToken(req, res, next) {
   }
 }
 
-// Redirect if already logged in (for login/register pages)
+// Redirect if already logged in
 function redirectIfLoggedIn(req, res, next) {
   const token = req.cookies.jwt;
   if (token) {
@@ -71,42 +67,59 @@ function redirectIfLoggedIn(req, res, next) {
   next();
 }
 
-// Role-based access control
+// Role-based access
 function requireRole(roles) {
   return (req, res, next) => {
     if (!req.user) {
       req.flash("notice", "Please log in.");
       return res.redirect("/account/login");
     }
-    if (roles.includes(req.user.account_type)) {
-      return next();
-    }
-    req.flash("error", "Access denied. You do not have permission.");
+    if (roles.includes(req.user.account_type)) return next();
+    req.flash("error", "Access denied.");
     return res.redirect("/account/");
   };
 }
-// For backward compatibility (session-based – not used but kept)
+
+// Backward compatibility (optional)
 function checkLogin(req, res, next) {
   if (req.cookies.jwt) return next();
   req.flash("notice", "Please log in.");
   return res.redirect("/account/login");
 }
-
 function checkLogout(req, res, next) {
   if (!req.cookies.jwt) return next();
   return res.redirect("/account/");
 }
-// Build a select list of classifications (for inventory forms)
-async function buildClassificationList() {
-  const inventoryModel = require("../models/inventory-model");
+
+// Build classification dropdown
+async function buildClassificationList(selectedId = null) {
   const classifications = await inventoryModel.getClassifications();
   let list = '<select name="classification_id" id="classification_id" required>';
   list += '<option value="">Choose a classification</option>';
-  classifications.forEach((cls) => {
-    list += `<option value="${cls.classification_id}">${cls.classification_name}</option>`;
-  });
+  for (const cls of classifications) {
+    list += `<option value="${cls.classification_id}" ${selectedId == cls.classification_id ? 'selected' : ''}>${cls.classification_name}</option>`;
+  }
   list += '</select>';
   return list;
+}
+
+// Build grid of vehicles (for classification view)
+function buildClassificationGrid(vehicles) {
+  if (!vehicles || vehicles.length === 0) return "<p>No vehicles found.</p>";
+  let grid = '<div class="vehicle-grid">';
+  for (const v of vehicles) {
+    grid += `
+      <div class="vehicle-card">
+        <a href="/inv/detail/${v.inv_id}">
+          <img src="${v.inv_thumbnail}" alt="${v.inv_make} ${v.inv_model}">
+          <h3>${v.inv_make} ${v.inv_model}</h3>
+          <p>$${v.inv_price}</p>
+        </a>
+      </div>
+    `;
+  }
+  grid += '</div>';
+  return grid;
 }
 
 module.exports = {
@@ -118,5 +131,6 @@ module.exports = {
   requireRole,
   checkLogin,
   checkLogout,
-  buildClassificationList,   
+  buildClassificationList,
+  buildClassificationGrid,
 };

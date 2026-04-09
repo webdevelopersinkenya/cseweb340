@@ -1,19 +1,29 @@
-<main>
-  <% if (accountData && accountData.account_type !== "Client") { %>
+<h1>Inventory Management</h1>
+<% if (notice && notice.length) { %><div class="flash-message notice"><%= notice[0] %></div><% } %>
+<% if (error && error.length) { %><div class="flash-message error"><%= error[0] %></div><% } %>
 
-    <h2>Vehicle Management</h2>
-    <p><a href="/inv/">Manage Inventory</a></p>
+<p><a href="/inv/add-classification">Add New Classification</a> | <a href="/inv/add-inventory">Add New Vehicle</a></p>
 
-    <nav class="management-view">
-      <ul>
-        <li><a href="/inv/add-classification">Add New Classification</a></li>
-        <li><a href="/inv/add-inventory">Add New Vehicle</a></li>
-      </ul>
-    </nav>
-
-  <% } else { %>
-
-    <p>You do not have permission to view this page.</p>
-
-  <% } %>
-</main>
+<h2>Current Vehicles</h2>
+<% if (vehicles && vehicles.length) { %>
+  <table border="1" cellpadding="5">
+    <tr><th>ID</th><th>Make/Model</th><th>Year</th><th>Price</th><th>Actions</th></tr>
+    <% vehicles.forEach(v => { %>
+      <tr>
+        <td><%= v.inv_id %></td>
+        <td><%= v.inv_make %> <%= v.inv_model %></td>
+        <td><%= v.inv_year %></td>
+        <td>$<%= v.inv_price %></td>
+        <td>
+          <a href="/inv/edit-vehicle/<%= v.inv_id %>">Edit</a> |
+          <form action="/inv/delete-vehicle" method="POST" style="display:inline;" onsubmit="return confirm('Delete this vehicle?')">
+            <input type="hidden" name="inv_id" value="<%= v.inv_id %>">
+            <button type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }); %>
+  </table>
+<% } else { %>
+  <p>No vehicles found.</p>
+<% } %>
